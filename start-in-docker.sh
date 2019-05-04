@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -euxo pipefail
+
 sysrepod
 #sysrepo-plugind
 # netopeer2-server

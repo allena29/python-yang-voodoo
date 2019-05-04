@@ -29,12 +29,7 @@ RUN \
 ADD artefacts /
 
 RUN \
-      dpkg -i /*.deb && \
-      rm -fr /*.deb && \
-      apt-get clean && \
-      apt-get autoclean
-
-
+      pip3 install flask jinja2
 RUN \
       python3 /get-pip.py && \
       rm -f /get-pip.py && \

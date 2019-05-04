@@ -1,0 +1,25 @@
+#!/bin/sh
+
+docker images &>/dev/null
+if [ $? = 0 ]
+then
+  echo "Docker is running...."
+else
+  echo "Docker daemon is not running!"
+  exit 1;
+fi
+
+echo "Building Image"
+if [ "$1" = "" ]
+then
+  image=`docker build docker | tail -n 1 | awk '{print $3}'`
+else
+  image=$1
+fi
+
+echo "Image $image" &>/dev/stderr
+
+pwd=`pwd`
+echo "Running in local dir $pwd" >/dev/stderr
+#container=`docker run -i -d -v $pwd:/working:rw $image`
+docker run -p 830:830 -i -t -v $pwd:/working:rw $image /working/start-web-in-docker.sh

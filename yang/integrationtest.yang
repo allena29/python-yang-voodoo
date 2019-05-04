@@ -218,6 +218,22 @@ module integrationtest {
 
     }
 
+    list genres {
+      key name;
+
+      leaf name {
+        type string;
+      }
+
+      list sub-genres {
+        key name;
+
+        leaf name {
+          type string;
+        }
+      }
+    }
+
     list promoters {
       key name;
 
@@ -235,6 +251,20 @@ module integrationtest {
 
       leaf genre {
         type string;
+      }
+
+      container descriptors {
+        leaf genre {
+          type leafref {
+            path "/integrationtest:web/integrationtest:genres/integrationtest:name";
+          }
+        }
+
+        leaf sub-genre {
+          type leafref {
+            path "/integrationtest:web/integrationtest:genres[integrationtest:name=current()/../integrationtest:genre]/integrationtest:sub-genres/integrationtest:name";
+          }
+        }
       }
 
       list gigs {

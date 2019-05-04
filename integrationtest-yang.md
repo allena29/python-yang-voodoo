@@ -51,11 +51,18 @@ module: integrationtest
   |  |        +--rw profile       string
   |  |        +--rw doors-open?   string
   |  |        +--rw curfew?       string
+  |  +--rw genres* [name]
+  |  |  +--rw name          string
+  |  |  +--rw sub-genres* [name]
+  |  |     +--rw name    string
   |  +--rw promoters* [name]
   |  |  +--rw name    string
   |  +--rw bands* [name]
   |  |  +--rw name     string
   |  |  +--rw genre?   string
+  |  |  +--rw descripitors
+  |  |  |  +--rw genre?       -> /web/genres/name
+  |  |  |  +--rw sub-genre?   -> /web/genres[integrationtest:name=current()/../genre]/sub-genres/name
   |  |  +--rw gigs* [year month day venue location]
   |  |     +--rw year        uint16
   |  |     +--rw month       uint8

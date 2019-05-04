@@ -59,6 +59,7 @@
    - (possibly solved) need a fix for template applier....
    - (possibly solved) when stub creates list keys it isn't whacking predicates on
    - ~~STUB Node doesn't remove child nodes e.g.~~ - STUB Node removes child nodes but the implementation is not optimal
+ - Investigate how to improve import of XML into sysrepo (see init-data/README.md)
 
 # Limitations:
 

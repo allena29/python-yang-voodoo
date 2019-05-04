@@ -106,10 +106,9 @@ RUN \
       git clone https://github.com/allena29/python-yang-voodoo.git working && \
       cd working && \
       # git checkout  context-and-logging && \
-      echo "v0.0.2-devel-with-stub" && \
+      echo "v0.0.2-devel-stub" && \
       cd /working && \
       pip3 install -r requirements.txt && \
-      pip3 install jinja2 lxml && \
       python3 setup.py install
 
 
@@ -200,7 +199,7 @@ RUN \
 
 
 RUN \
-    pip3 install mock coverage nose2 autopep8 pyflakes dictdiffer && \
+    pip3 install mock coverage nose2 autopep8 pyflakes dictdiffer flask && \
     cd /working && \
     echo "Git Pull (v2)" && \
     git config --global user.email "docker-user@localhost" && \

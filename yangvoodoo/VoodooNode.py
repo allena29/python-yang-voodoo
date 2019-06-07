@@ -114,6 +114,9 @@ class Node:
             context._trace("SortedList", node, context, self)
             return SortedList(context, node, self)
 
+        if attr == '_children':
+            return self._children
+
         node_schema = Common.Utils.get_yangnode(node, context, attr)
         node_type = node_schema.nodetype()
 
@@ -196,6 +199,9 @@ class Node:
 
         backend_type = Common.Utils.get_yang_type(node_schema.type(), val, node_schema.real_data_path)
         context.dal.set(node_schema.real_data_path, val, backend_type)
+
+    def _children(self):
+        return self.__dir__(True)
 
     def __dir__(self, no_translations=False):
         node = self._node
@@ -756,6 +762,9 @@ class SuperRoot:
         self._nodes[attachment_point] = session
         self._node = node
         return getattr(node, attachment_point)
+
+    def _children(self):
+        return self.__dir__()
 
     def __dir__(self):
         k = list(self._nodes.keys())

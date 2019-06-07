@@ -1,8 +1,2 @@
 #!/bin/bash
-pwd
-export PYENV_ROOT="$HOME/.pyenv"
-export PATH="$PYENV_ROOT/bin:$PATH"
-eval "$(pyenv init -)"
-eval "$(pyenv virtualenv-init -)"
-
 python3 cli.py

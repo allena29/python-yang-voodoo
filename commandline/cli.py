@@ -73,7 +73,7 @@ class state:
         self.session.connect("integrationtest", yang_location="../yang")
         self.root = self.session.get_node()
         self.current_node = self.root
-        self.go_to_parent = -1
+        self.go_to_parent = [-1]
         self.valid_position = 0
         self.last_cursor_position = -1
 
@@ -81,25 +81,28 @@ class state:
         global log
         parts = self._get_space_separated_values(document.text)
 
+        if len(parts) == 0:
+            log.info("No parts")
+            return
         log.info("%s parts-1=%s len(text)=%s gotoparent=%s repr(curretNode)=%s", document.text,
                  parts[-1], len(document.text), self.go_to_parent, repr(self.current_node))
+
         space_count = len(parts)
         # log.info("parts... %s (%s)" % (parts, space_count))
-        if len(parts) == 0:
-            return
 
         last_part = '' + parts[-1]
 
-        if len(document.text) + 1 == self.go_to_parent and len(document.text) < self.last_cursor_position:
+        if len(document.text)+1 == self.go_to_parent[-1] and len(document.text) < self.last_cursor_position:
             # only do this if we are going backwards and we have gone far enough back.
-            log.info('Hit the trap... we need to go to our parent node')
             parent_node = self.current_node._parent
+            log.info('Hit the trap... we need to go to our parent node... will be %s', repr(parent_node))
             self.current_node = parent_node
-        elif document.text[-1] == ' ' and len(parts) > 1 and len(document.text) > self.go_to_parent+1:
+            self.go_to_parent.pop()
+        elif document.text[-1] == ' ' and len(parts) > 1 and len(document.text) > self.go_to_parent[-1]+1:
             # The logic here is right - it would be nice if we need need to do quite as much work to track the up
             # and down bits.
             # log.info('transitioning modes.....%s.....%s...%s..', parts[-1], len(document.text), self.go_to_parent)
-            self.go_to_parent = len(document.text) - 1
+            self.go_to_parent.append(len(document.text) - 1)
 
             new_node = self.current_node[parts[-1]]
             # log.info('new node.... %s', repr(new_node))
@@ -205,6 +208,8 @@ class cli:
                     if self.state_object.mode == 1:
                         self.state_object.mode = 0
                         print("\n[ok][%s]" % (formats.get_time()))
+                        self.state_object.current_node = self.state_object.root
+                        self.state_object.go_to_parent = [-1]
                         continue
                     break
         except KeyboardInterrupt:
@@ -221,6 +226,8 @@ class cli:
             print("Entering configuration mode")
             print("[ok][%s]" % (formats.get_time()))
             self.state_object.mode = 1
+            self.state_object.current_node = self.state_object.root
+            self.state_object.go_to_parent = [-1]
             return True
 
     def _process_conf_command(self, cmd):
@@ -228,6 +235,8 @@ class cli:
         if cmd == "exit":
             print("\n[ok][%s]" % (formats.get_time()))
             self.state_object.mode = 0
+            self.state_object.current_node = self.state_object.root
+            self.state_object.go_to_parent = [-1]
             return True
 
 

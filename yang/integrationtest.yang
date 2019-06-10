@@ -98,6 +98,39 @@ module integrationtest {
     }
 
   }
+
+  container cli {
+
+    container a {
+      leaf apple {
+        type string;
+      }
+    }
+
+    container b {
+      leaf bed {
+        type string;
+      }
+      leaf bug {
+        type string;
+      }
+    }
+
+    container c {
+      presence true;
+      leaf cup {
+        type string;
+      }
+    }
+
+    list d {
+      key donkey;
+      leaf donkey {
+        type string;
+      }
+    }
+
+  }
   container validator {
     container strings {
       leaf nolen {

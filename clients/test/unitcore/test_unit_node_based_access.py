@@ -21,7 +21,7 @@ class test_node_based_access(unittest.TestCase):
     def test_root(self):
         self.assertEqual(repr(self.root), 'VoodooNodeRoot{} YANG Module: integrationtest')
 
-        expected_children = ['bronze', 'container_and_lists', 'default', 'diff', 'dirty_secret', 'empty',
+        expected_children = ['bronze', 'cli', 'container_and_lists', 'default', 'diff', 'dirty_secret', 'empty',
                              'hyphen_leaf', 'imports_in_here', 'list_to_leafref_against', 'lista', 'morecomplex',
                              'numberlist', 'outsidelist', 'patternstr', 'psychedelia', 'quad', 'quarter',
                              'resolver', 'simplecontainer', 'simpleenum', 'simpleleaf', 'simplelist',

@@ -1,11 +1,7 @@
 #!/usr/bin/env python3
-from prompt_toolkit.validation import Validator, ValidationError
-from prompt_toolkit import prompt
-
-
 import yangvoodoo
-# import argparse
 from logsink import LogWrap
+import re
 import sys
 import time
 from prompt_toolkit.formatted_text import HTML
@@ -13,45 +9,35 @@ from prompt_toolkit import PromptSession
 from prompt_toolkit.completion import WordCompleter
 from prompt_toolkit.validation import Validator, ValidationError
 from prompt_toolkit.auto_suggest import AutoSuggestFromHistory
-from prompt_toolkit.formatted_text import HTML
 from prompt_toolkit.completion import Completer, Completion
 
 
-class MyCustomCompleter(Completer):
+class MyCompleter(Completer):
     def get_completions(self, document, complete_event):
-        """
-        document - https://python-prompt-toolkit.readthedocs.io/en/1.0.15/pages/reference.html#module-prompt_toolkit.document
-           has text
-        """
         global log, state_object
-        log.info('get_completions: %s' % (document.text))
-        last_part = document.text.split(' ')[-1]
-
-        for child in state_object.current_node._children():
-            if child[0:len(last_part)] == last_part:
-
-                yield Completion(
-                    child[len(last_part):] + " ", start_position=0,
-                    display=HTML('<b>%s</b> ' % (child)),
-                    # style='bg:ansiyellow')
-                )
+        for (option, display) in state_object.get_completions(document, hide_optional=True):
+            yield Completion(
+                option, start_position=0,
+                display=HTML('<b>%s</b> ' % (display))
+            )
 
 
 class MyValidator(Validator):
     def validate(self, document):
         global log, state_object
-        last_part = document.text.split(' ')[-1]
-        log.info('validate: %s  --- %s/%s - %s' % (document.text, len(document.text), state_object.valid_position, last_part))
-        for child in state_object.current_node._children():
-            # log.info('... this is valid %s' % (child))
-            if child[0:len(last_part)] == last_part:
-                state_object.valid_position = len(document.text)
-                return True
+        parts = state._get_space_separated_values(document.text)
+        if len(parts) == 0:
+            return True
 
-        sys.stdout.write("\a")
-        state_object.buffer.delete_before_cursor(1)
-        raise ValidationError(message='This input contains non-numeric characters',
-                              cursor_position=0)
+        last_part = parts[-1]
+        # log.info('validate: %s  --- %s/%s - %s' % (document.text, len(document.text), state_object.valid_position, last_part))
+        for option in state_object.get_completions(document):
+            return True
+
+        if not document.text[-1] == ' ':
+            sys.stdout.write("\a")
+            state_object.buffer.delete_before_cursor(1)
+            raise ValidationError(message='Invalid input', cursor_position=0)
 
 
 class formats:
@@ -74,18 +60,100 @@ class formats:
 
 class state:
 
+    OPER_COMMANDS = [('conf', 0),  ('configure', 1), ('config', 0), ('show ', 1), ('exit', 1)]
+    OPER_COMMANDS2 = [('conf ', 0), ('config ', 0), ('configure ', 0), ('configuration ', 1)]
+    CONF_COMMANDS = [('set ', 1), ('delete ', 1), ('exit', 1), ('validate', 1), ('commit', 1)]
+    # allow '', "" quote strings or non space containg strings.
+    REGEX_SPACE_SEPARATOR = re.compile(r"'([^']+)'|\"([^\"]+)\"|(\S+)")
+
     def __init__(self):
-        self.conf_mode = 0
+        self.mode = 0
         self.first_command = None
         self.session = yangvoodoo.DataAccess()
         self.session.connect("integrationtest", yang_location="../yang")
         self.root = self.session.get_node()
         self.current_node = self.root
-
+        self.go_to_parent = -1
         self.valid_position = 0
+        self.last_cursor_position = -1
+
+    def get_completions(self, document, hide_optional=False):
+        global log
+        parts = self._get_space_separated_values(document.text)
+
+        log.info("%s parts-1=%s len(text)=%s gotoparent=%s repr(curretNode)=%s", document.text,
+                 parts[-1], len(document.text), self.go_to_parent, repr(self.current_node))
+        space_count = len(parts)
+        # log.info("parts... %s (%s)" % (parts, space_count))
+        if len(parts) == 0:
+            return
+
+        last_part = '' + parts[-1]
+
+        if len(document.text) + 1 == self.go_to_parent and len(document.text) < self.last_cursor_position:
+            # only do this if we are going backwards and we have gone far enough back.
+            log.info('Hit the trap... we need to go to our parent node')
+            parent_node = self.current_node._parent
+            self.current_node = parent_node
+        elif document.text[-1] == ' ' and len(parts) > 1 and len(document.text) > self.go_to_parent+1:
+            # The logic here is right - it would be nice if we need need to do quite as much work to track the up
+            # and down bits.
+            # log.info('transitioning modes.....%s.....%s...%s..', parts[-1], len(document.text), self.go_to_parent)
+            self.go_to_parent = len(document.text) - 1
+
+            new_node = self.current_node[parts[-1]]
+            # log.info('new node.... %s', repr(new_node))
+            self.current_node = new_node
+            # We need to track where we switch ed
+
+        # log.info('get completions: _%s_%s_', document.text, last_part)
+        if (space_count > 2 and self.mode == 0) or (space_count > 1 and self.mode == 1):
+            completions = self.current_node._children()
+        elif self.mode == 0 and space_count == 1:
+            completions = self.OPER_COMMANDS2
+        elif self.mode == 0:
+            completions = self.OPER_COMMANDS
+        else:
+            completions = self.CONF_COMMANDS
+
+        self.last_cursor_position = len(document.text)
+        for completion in completions:
+            if isinstance(completion, tuple):
+                (child, visibility) = completion
+            else:
+                child = completion
+                visibility = True
+            if child[0:len(last_part)] == last_part:
+                # TODO: ideally here we will know if something is a terminating node
+                # e.g. bronze, isn't a presence container so it makes sesnse to complete that as 'bronze '
+                # deep is a terminating leaf node that takes a value so it makes sense to complete that as 'deep '
+                # Potentially a little deviation frmo Juniper CLI syntax might be to always have '=' for leaf values.
+                # No matter how it's rendered on the CLI we need to know the information.
+                state_object.valid_position = len(document.text)
+                if not (visibility == 0 and hide_optional):
+                    yield (child[len(last_part):], child)
+
+    @staticmethod
+    def _get_space_separated_values(input):
+        """
+        Get space separated values, ignoring quoted stirngs.
+        """
+        answer = []
+        for match1, match2, match3 in state.REGEX_SPACE_SEPARATOR.findall(input):
+            if match3 != '':
+                answer.append(match3)
+            elif match2 != '':
+                answer.append(match2)
+            else:
+                answer.append(match1)
+        return answer
 
 
 class cli:
+
+    # allow \ escpaed scpaes,
+    # REGEX_SPACE_SEPARATOR = re.compile(r"(\S+\\ \S+)|((')([^']+)('))|((\")[^\"]+(\"))|(\S+)")
+    # REGEX_SPACE_SEPARATOR = re.compile(r"('([^']+)')|(\"([^\"])+\")|(\S+)")
 
     def __init__(self, state_object):
         self.log = LogWrap("cli")
@@ -97,8 +165,6 @@ class cli:
         self.state_object = state_object
 
         self.prompt = self._get_prompt_session()
-        print(self.prompt)
-        print(self.prompt.default_buffer)
         self.state_object.buffer = self.prompt.default_buffer
 
     def _get_prompt_session(self):
@@ -108,11 +174,14 @@ class cli:
         return WordCompleter(['set ', 'show '])
 
     def _prompt_and_wait_for_cli(self):
-        prompt = "%s@%s> " % (self.user, self.host)
+        if self.state_object.mode == 1:
+            our_prompt = "\n[edit]\n%s@%s%% " % (self.user, self.host)
+        else:
+            our_prompt = "%s@%s> " % (self.user, self.host)
 
-        return self.prompt.prompt(prompt,
+        return self.prompt.prompt(our_prompt,
                                   bottom_toolbar=formats.bottom_toolbar,
-                                  completer=MyCustomCompleter(),
+                                  completer=MyCompleter(),
                                   validator=MyValidator(),
                                   complete_while_typing=True,
                                   validate_while_typing=True,
@@ -125,17 +194,41 @@ class cli:
             print('Welcome goes here')
             while not self.exit:
                 try:
-                    x = self._prompt_and_wait_for_cli()
-
-                    print(x)
+                    cmd = self._prompt_and_wait_for_cli()
+                    if self.state_object.mode == 0:
+                        self._process_oper_command(cmd)
+                    else:
+                        self._process_conf_command(cmd)
                 except KeyboardInterrupt:
                     pass
                 except EOFError:
+                    if self.state_object.mode == 1:
+                        self.state_object.mode = 0
+                        print("\n[ok][%s]" % (formats.get_time()))
+                        continue
                     break
         except KeyboardInterrupt:
             pass
         except EOFError:
             pass
+
+    def _process_oper_command(self, cmd):
+        if cmd == "exit":
+            print("Goodbye!")
+            sys.exit(0)
+
+        if cmd == "conf" or cmd == "configure" or cmd == "config":
+            print("Entering configuration mode")
+            print("[ok][%s]" % (formats.get_time()))
+            self.state_object.mode = 1
+            return True
+
+    def _process_conf_command(self, cmd):
+        self.log.info('processing conf _%s_', cmd)
+        if cmd == "exit":
+            print("\n[ok][%s]" % (formats.get_time()))
+            self.state_object.mode = 0
+            return True
 
 
 # class cruxli:
@@ -297,9 +390,20 @@ class cli:
 #     cli.start_cli_session()
 #     cli.loop()
 
+
 if __name__ == '__main__':
     log = LogWrap("cli-customer-completer")
     state_object = state()
     c = cli(state_object)
+    if len(sys.argv) == 2:
+        with open(sys.argv[1]) as file_handle:
+            line = file_handle.readline()
+            while line != "":
+                if line[0] == "O":
+                    c._process_oper_command(line[2:].rstrip())
+                if line[0] == "I":
+                    c._process_conf_command(line[2:].rstrip())
+                line = file_handle.readline()
+
     c.loop()
 #

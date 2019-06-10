@@ -5,7 +5,7 @@ Feature: Basic CLI mode validations against test data structures
     When we open the command line interface
     Then we should be presented with a welcome prompt containing
       """
-      Welcome to BREWERS COMMAND LINE INTERFACE
+      Welcome goes here
       """
 
     When we send the following command
@@ -13,6 +13,12 @@ Feature: Basic CLI mode validations against test data structures
       configure
       """
     Then we should be in configuration mode
+
+    When we send the following command
+      """
+      set cli a apple horrible
+      """
+
 
     When we send the following command
       """

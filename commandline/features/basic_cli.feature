@@ -16,7 +16,7 @@ Feature: Basic CLI mode validations against test data structures
 
     When we send the following command
       """
-      set cli a apple
+      set cli a apple horrible
       """
 
 

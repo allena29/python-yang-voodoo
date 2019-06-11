@@ -10,6 +10,7 @@ from prompt_toolkit.completion import WordCompleter
 from prompt_toolkit.validation import Validator, ValidationError
 from prompt_toolkit.auto_suggest import AutoSuggestFromHistory
 from prompt_toolkit.completion import Completer, Completion
+from prompt_toolkit.history import FileHistory
 
 
 class MyCompleter(Completer):
@@ -25,6 +26,8 @@ class MyCompleter(Completer):
 class MyValidator(Validator):
     def validate(self, document):
         global log, state_object
+        if state_object.stop_completions_and_validation:
+            return
         parts = state._get_space_separated_values(document.text)
         if len(parts) == 0:
             return True
@@ -76,42 +79,54 @@ class state:
         self.go_to_parent = [-1]
         self.valid_position = 0
         self.last_cursor_position = -1
+        self.stop_completions_and_validation = False
 
     def get_completions(self, document, hide_optional=False):
         global log
         parts = self._get_space_separated_values(document.text)
 
         if len(parts) == 0:
-            log.info("No parts")
+            # log.info("No parts")
             return
-        log.info("%s parts-1=%s len(text)=%s gotoparent=%s repr(curretNode)=%s", document.text,
-                 parts[-1], len(document.text), self.go_to_parent, repr(self.current_node))
+        log.info("%s parts-1=%s len(text)=%s gotoparent=%s repr(curretNode)=%s stop=%s", document.text,
+                 parts[-1], len(document.text), self.go_to_parent, repr(self.current_node),            self.stop_completions_and_validation
+                 )
 
         space_count = len(parts)
         # log.info("parts... %s (%s)" % (parts, space_count))
-
         last_part = '' + parts[-1]
 
-        if len(document.text)+1 == self.go_to_parent[-1] and len(document.text) < self.last_cursor_position:
+        if self.restart_completions_at > 0 and len(document.text) == self.restart_completions_at and len(document.text) < self.last_cursor_position:
+            # log.info('now should valid and complete')
+            self.stop_completions_and_validation = False
+
+        elif len(document.text)+1 == self.go_to_parent[-1] and len(document.text) < self.last_cursor_position:
             # only do this if we are going backwards and we have gone far enough back.
             parent_node = self.current_node._parent
-            log.info('Hit the trap... we need to go to our parent node... will be %s', repr(parent_node))
+            # log.info('Hit the trap... we need to go to our parent node... will be %s', repr(parent_node))
             self.current_node = parent_node
             self.go_to_parent.pop()
         elif document.text[-1] == ' ' and len(parts) > 1 and len(document.text) > self.go_to_parent[-1]+1:
             # The logic here is right - it would be nice if we need need to do quite as much work to track the up
             # and down bits.
             # log.info('transitioning modes.....%s.....%s...%s..', parts[-1], len(document.text), self.go_to_parent)
-            self.go_to_parent.append(len(document.text) - 1)
-
-            new_node = self.current_node[parts[-1]]
-            # log.info('new node.... %s', repr(new_node))
-            self.current_node = new_node
-            # We need to track where we switch ed
+            try:
+                new_node = self.current_node[parts[-1]]
+                self.go_to_parent.append(len(document.text) - 1)
+                # log.info('new node.... %s', repr(new_node))
+                self.current_node = new_node
+                # We need to track where we switch ed
+            except Exception:
+                self.stop_completions_and_validation = True
+                self.restart_completions_at = len(document.text)+1
+                log.info('this isnt a containngnnnode %s', len(document.text))
 
         # log.info('get completions: _%s_%s_', document.text, last_part)
         if (space_count > 2 and self.mode == 0) or (space_count > 1 and self.mode == 1):
-            completions = self.current_node._children()
+            if self.stop_completions_and_validation:
+                completions = []
+            else:
+                completions = self.current_node._children()
         elif self.mode == 0 and space_count == 1:
             completions = self.OPER_COMMANDS2
         elif self.mode == 0:
@@ -126,6 +141,7 @@ class state:
             else:
                 child = completion
                 visibility = True
+
             if child[0:len(last_part)] == last_part:
                 # TODO: ideally here we will know if something is a terminating node
                 # e.g. bronze, isn't a presence container so it makes sesnse to complete that as 'bronze '
@@ -135,6 +151,10 @@ class state:
                 state_object.valid_position = len(document.text)
                 if not (visibility == 0 and hide_optional):
                     yield (child[len(last_part):], child)
+
+        # if len(completions) == 1:
+            # log.info("here might be a good idea to know if we are dealing with a leaf....")
+            # it doesn't make sense to try before we are down to on ematch.
 
     @staticmethod
     def _get_space_separated_values(input):
@@ -171,7 +191,9 @@ class cli:
         self.state_object.buffer = self.prompt.default_buffer
 
     def _get_prompt_session(self):
-        return PromptSession()
+        our_history = FileHistory('.yangvoodoo-cli-history')
+
+        return PromptSession(history=our_history)
 
     def _get_completer(self):
         return WordCompleter(['set ', 'show '])
@@ -210,6 +232,8 @@ class cli:
                         print("\n[ok][%s]" % (formats.get_time()))
                         self.state_object.current_node = self.state_object.root
                         self.state_object.go_to_parent = [-1]
+                        self.state_object.stop_completions_and_validation = False
+                        self.state_object.restart_completions_at = -1
                         continue
                     break
         except KeyboardInterrupt:
@@ -228,6 +252,8 @@ class cli:
             self.state_object.mode = 1
             self.state_object.current_node = self.state_object.root
             self.state_object.go_to_parent = [-1]
+            self.state_object.stop_completions_and_validation = False
+            self.state_object.restart_completions_at = -1
             return True
 
     def _process_conf_command(self, cmd):
@@ -237,7 +263,18 @@ class cli:
             self.state_object.mode = 0
             self.state_object.current_node = self.state_object.root
             self.state_object.go_to_parent = [-1]
+            self.state_object.stop_completions_and_validation = False
+            self.state_object.restart_completions_at = -1
             return True
+        else:
+            self.log.info('operate on voodoo node: %s', self.state_object.current_node)
+            # here we don't have the correct voodoo node out of the box
+            # in the example 'set cli a apple <X>' we get the voodoo node a
+            parts = state._get_space_separated_values(cmd)
+            self.log.info('parts %s', str(parts))
+            self.log.info('parts-2  %s', parts[-2])
+            self.log.info('our node now %s', our_node)
+            self.log.info('new node: %s of type %s', our_node, our_node._NODE_TYPE)
 
 
 # class cruxli:

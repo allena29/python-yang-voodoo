@@ -16,7 +16,13 @@ from prompt_toolkit.history import FileHistory
 class MyCompleter(Completer):
     def get_completions(self, document, complete_event):
         global log, state_object
-        for (option, display) in state_object.get_completions(document, hide_optional=True):
+
+        if not state_object.current_command:
+            options = state_object.get_command_completions(document, validator=False)
+        else:
+            options = state_object.get_completions(document, validator=False)
+
+        for (option, display) in options:
             yield Completion(
                 option, start_position=0,
                 display=HTML('<b>%s</b> ' % (display))
@@ -32,9 +38,12 @@ class MyValidator(Validator):
         if len(parts) == 0:
             return True
 
-        last_part = parts[-1]
-        # log.info('validate: %s  --- %s/%s - %s' % (document.text, len(document.text), state_object.valid_position, last_part))
-        for option in state_object.get_completions(document):
+        if not state_object.current_command:
+            options = state_object.get_command_completions(document)
+        else:
+            options = state_object.get_completions(document)
+
+        for option in options:
             return True
 
         if not document.text[-1] == ' ':
@@ -63,11 +72,18 @@ class formats:
 
 class state:
 
-    OPER_COMMANDS = [('conf', 0),  ('configure', 1), ('config', 0), ('show ', 1), ('exit', 1)]
-    OPER_COMMANDS2 = [('conf ', 0), ('config ', 0), ('configure ', 0), ('configuration ', 1)]
+    OPER_COMMANDS = [('conf', 0),  ('configure', 1), ('config', 0), ('show configuration ', 1), ('show config ', 0), ('exit', 1)]
     CONF_COMMANDS = [('set ', 1), ('delete ', 1), ('exit', 1), ('validate', 1), ('commit', 1)]
     # allow '', "" quote strings or non space containg strings.
     REGEX_SPACE_SEPARATOR = re.compile(r"'([^']+)'|\"([^\"]+)\"|(\S+)")
+
+    """
+    The state object tracks what the user is typing, every keystroke fires a validator, and completer.
+
+    The validator fires first, and raises an exception if the input does not look valid. In that case we
+    don't need to worry about the completer firing.
+
+    """
 
     def __init__(self):
         self.mode = 0
@@ -76,12 +92,35 @@ class state:
         self.session.connect("integrationtest", yang_location="../yang")
         self.root = self.session.get_node()
         self.current_node = self.root
-        self.go_to_parent = [-1]
-        self.valid_position = 0
-        self.last_cursor_position = -1
+        #self.go_to_parent = [-1]
+        #self.valid_position = 0
+        #self.last_cursor_position = -1
+        #self.stop_completions_and_validation = False
+        #self.restart_completions_at = 1
+        self.current_command = None
         self.stop_completions_and_validation = False
 
+    def get_command_completions(self, document, validator=True):
+        if validator:
+            log.info("Consisdering %s-command  for __%s__", self.mode, document.text)
+
+        completions = self.OPER_COMMANDS
+        if self.mode == 1:
+            completions = self.CONF_COMMANDS
+
+        for (completion, visibility) in completions:
+            if completion[0:len(document.text)] == document.text:
+                if not (visibility == 0 and not validator):
+                    yield (completion[len(document.text):], completion)
+
     def get_completions(self, document, hide_optional=False):
+        """
+        hide_optional - when used by a completer will be set to true, when used by a validator will be set to false.
+        """
+
+        return []
+
+    def old_get_completions(self, document, hide_optional=False):
         global log
         parts = self._get_space_separated_values(document.text)
 

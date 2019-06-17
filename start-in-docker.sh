@@ -25,6 +25,8 @@ then
   ./run-test.sh
 fi
 
+
+cd /working/clients
 if [ $? = 0 ]
 then
   ./interactive

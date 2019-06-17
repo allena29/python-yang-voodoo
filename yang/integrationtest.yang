@@ -127,12 +127,27 @@ module integrationtest {
 
   container cli {
 
+    container zzz {
+      leaf zoo {
+        type string;
+      }
+      leaf zebra {
+        type string;
+      }
+
+      leaf zebeedee {
+        type string;
+      }
+    }
     container a {
       leaf apple {
         type string;
       }
     }
 
+    container aaaaa {
+      
+    }
     container b {
       leaf bed {
         type string;

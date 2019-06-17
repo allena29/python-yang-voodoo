@@ -8,26 +8,27 @@ Feature: Basic CLI mode validations against test data structures
       Welcome goes here
       """
 
-    When we send the following command
+    When we send the following commands
       """
       configure
       """
     Then we should be in configuration mode
 
-    When we send the following command
+    When we send the following configuration commands
       """
       set cli a apple horrible
+
       """
 
 
-    When we send the following command
+    When we send the following commands
       """
       exit
       """
 
     Then we should be in operational mode
 
-    When we send the following command
+    When we send the following commands
       """
       exit
       """

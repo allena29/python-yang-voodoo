@@ -16,58 +16,80 @@ from prompt_toolkit.history import FileHistory
 class MyCompleter(Completer):
     def get_completions(self, document, complete_event):
         global log, state_object
+        complete_this = document.text
 
         if not state_object.current_command:
-            options = state_object.get_command_completions(document, validator=False)
+            options = state_object.get_command_completions(complete_this, validator=False)
         else:
             parts = state._get_space_separated_values(document.text)
-            options = state_object.get_completions(document, parts, validator=False)
+            log.info('did we get here %s', str(parts))
+            # This is required to make sure the completions for the next node work - otherwise
+            # it tries to match the previous word
+            if document.text[-1] == ' ':
+                parts.pop()
+                parts.append('')
+            log.info("asking for completions on __%s__ %s", complete_this, str(parts))
+            options = state_object.get_completions(complete_this, parts, validator=False)
 
-        for (option, display) in options:
-            yield Completion(
-                option, start_position=0,
-                display=HTML('<b>%s</b> ' % (display))
-            )
+        for (option, display, visibility) in options:
+            if visibility:
+                yield Completion(
+                    option, start_position=0,
+                    display=HTML('<b>%s</b> ' % (display))
+                )
 
 
 class MyValidator(Validator):
-    def validate(self, document):
-        global log, state_object
+
+    def _error(self, message, delete_last_character=True, terminal_bell=True):
+        if terminal_bell:
+            sys.stdout.write("\a")
+        if delete_last_character:
+            state_object.buffer.delete_before_cursor(1)
+        raise ValidationError(message=message, cursor_position=0)
+
+    def validate(self, document, _state_object_and_log=None):
+        global state_object, log
+        if _state_object_and_log:
+            (state_object, log) = _state_object_and_log
+
+        if len(document.text) > 1:
+            if document.text[-2:] == '  ':
+                self._error("stop pressing the space bar", True, True)
+
         if state_object.stop_completions_and_validation:
             return
+
         parts = state._get_space_separated_values(document.text)
         if len(parts) == 0:
             return True
 
-        state_object.update_position_and_current_command(document)
+        state_object.update_position_and_current_command(document.text)
 
         if not state_object.current_command:
-            options = state_object.get_command_completions(document)
+            options = state_object.get_command_completions(document.text)
         else:
-            options = state_object.get_completions(document, parts)
+            options = state_object.get_completions(document.text, parts)
 
         num_options = 0
-        for option in options:
-            num_options = num_options + 1
+        for incomplete_part, completion, visibility in options:
+            if visibility:
+                num_options = num_options + 1
 
         if num_options == 1:
+            state_object.update_current_node(document.text)
             return True
 
-        log.info("__%s__ trailing_parts %s options %s", document.text, state_object.number_of_trailing_parts, num_options)
+    #    log.info("__%s__ trailing_parts %s options %s", document.text, state_object.number_of_trailing_parts, num_options)
         if state_object.number_of_trailing_parts > 0:
             if len(parts) > state_object.last_part_count + state_object.number_of_trailing_parts:
-                state_object.buffer.delete_before_cursor(1)
-                raise ValidationError(message="Too many keys/leaves", cursor_position=0)
+                self._error("Too many values")
             if len(parts) == state_object.last_part_count + state_object.number_of_trailing_parts and document.text[-1] == ' ':
-                state_object.buffer.delete_before_cursor(1)
-                raise ValidationError(message="No more!", cursor_position=0)
+                self._error("No more!")
         elif num_options > 1:
-            raise ValidationError(message="Not enough!", cursor_position=0)
-
+            self._error("Not enough!", delete_last_character=False, terminal_bell=False)
         elif not document.text[-1] == ' ' and state_object.number_of_trailing_parts == 0:
-            sys.stdout.write("\a")
-            state_object.buffer.delete_before_cursor(1)
-            raise ValidationError(message='Invalid input', cursor_position=0)
+            self._error("Invalid input")
 
 
 class formats:
@@ -103,7 +125,8 @@ class state:
 
     """
 
-    def __init__(self):
+    def __init__(self, log=None):
+        self.log = log
         self.mode = 0
         self.first_command = None
         self.session = yangvoodoo.DataAccess()
@@ -114,43 +137,52 @@ class state:
         self.current_command = None
         self.stop_completions_and_validation = False
         self.reset_current_command = 0
+        self.go_to_next_node_at_position = 0
         self.number_of_trailing_parts = 0
+        self.next_node_number_of_trailing_parts = 0
+        self.direction = "never moved"
+        self.previous_node_name = ""
+        self.next_node_name = ""
 
-    def update_position_and_current_command(self, document):
-        log.info("Consisdering %s-command  for __%s__", self.mode, document.text)
-
-        if len(document.text) < self.last_character_position:
+    def update_position_and_current_command(self, document_text):
+        self.log.info("Consisdering %s-command  for __%s__ (last %s, number of trailing %s, goto-next-node %s)", self.mode, document_text,
+                      self.last_character_position, self.next_node_number_of_trailing_parts, self.go_to_next_node_at_position)
+        self.log.info("Node %s", self.current_node)
+        if len(document_text) < self.last_character_position:
             self.direction = 'backwards'
         else:
             self.direction = 'forwards'
 
-        if self.direction == 'backwards' and len(document.text) == self.reset_current_command:
+        if self.direction == 'backwards' and len(document_text) == self.reset_current_command:
             self.current_command = None
             self.reset_current_command = 0
 
-        if self.direction == 'forwards' and len(document.text) >= self.go_to_next_node_at_position and self.go_to_next_node_at_position > 0:
-            self.current_node = self.current_node[self.next_node_name]
-            self.go_to_next_node_at_position = 0
-        self.last_character_position = len(document.text)
+        self.last_character_position = len(document_text)
 
-    def get_command_completions(self, document, validator=True):
+    def update_current_node(self, document_text):
+
+        if self.direction == 'forwards' and len(document_text) >= self.go_to_next_node_at_position and self.go_to_next_node_at_position > 0:
+            self.current_node = self.current_node[self.next_node_name]
+            self.number_of_trailing_parts = self.next_node_number_of_trailing_parts
+            self.go_to_next_node_at_position = 0
+
+    def get_command_completions(self, document_text, validator=True):
         """
         we track which command is current, and based on direction will reset it to None
         """
-        log.info('GCC: %s %s __%s__', self.direction, self.current_command, document.text)
+        log.info('GCC: %s %s __%s__', self.direction, self.current_command, document_text)
         completions = self.OPER_COMMANDS
         if self.mode == 1:
             completions = self.CONF_COMMANDS
 
         for (completion, visibility) in completions:
-            if completion[0:len(document.text)] == document.text:
+            if completion[0:len(document_text)] == document_text:
                 if not (visibility == 0 and not validator):
-                    if validator and document.text == completion:
+                    if validator and document_text == completion:
                         self.current_command = completion
+                    yield (completion[len(document_text):], completion, visibility)
 
-                    yield (completion[len(document.text):], completion)
-
-    def get_completions(self, document, parts, validator=True):
+    def get_completions(self, document_text, parts, validator=True):
         """
         """
         if self.number_of_trailing_parts > 0:
@@ -158,23 +190,33 @@ class state:
             return
 
         last_part = parts[-1]
-        log.info('GC : len(%s) %s %s __%s__  __%s__', len(document.text), self.direction, self.current_command, document.text, last_part)
-        completions = self.current_node._children()
+        self.log.info('GC : len(%s) %s %s __%s__  __%s__', len(document_text), self.direction, self.current_command, document_text, last_part)
+
+        if isinstance(self.current_node, yangvoodoo.VoodooNode.Voodoo):
+            self.log.info("getting completsions from %s", self.current_node)
+            completions = self.current_node._children()
+            self.log.info("%s" % (str(completions)))
+        else:
+            self.log.info("skipping completions becuase node doesnt look voodoo like %s", self.current_node)
+            return True
 
         answers = []
         for completion in completions:
             if completion[0:len(last_part)] == last_part:
-                answers.append((completion[len(last_part):], completion))
+                answers.append((completion[len(last_part):], completion, True))
 
+        self.log.info('still going???')
         if len(answers) == 1:
             log.info("only one option left")
 
-            self.go_to_parent_node_at_position = len(document.text)
+            self.go_to_parent_node_at_position = len(document_text)
             self.parent_node = self.current_node
             self.previous_node_name = self.next_node_name
             self.next_node_name = answers[0][1]
-            self.number_of_trailing_parts = state.how_many_trailing_parts(self.current_node, answers[0][1])
-            self.go_to_next_node_at_position = len(document.text) - len(last_part) + len(answers[0][1]) + 1
+
+            self.next_node_number_of_trailing_parts = state.how_many_trailing_parts(self.current_node, answers[0][1])
+            # self.number_of_trailing_parts = state.how_many_trailing_parts(self.current_node, answers[0][1])
+            self.go_to_next_node_at_position = len(document_text) - len(last_part) + len(answers[0][1])
             self.last_part_count = len(parts)
 
         for answer in answers:
@@ -207,6 +249,7 @@ class state:
         self.next_node_name = ""
         self.previous_node_name = ""
         self.last_part_count = 0
+        self.next_node_number_of_trailing_parts = 0
 
     def reset_oper(self):
         self.mode = 0
@@ -217,6 +260,7 @@ class state:
         self.next_node_name = ""
         self.previous_node_name = ""
         self.last_part_count = 0
+        self.next_node_number_of_trailing_parts = 0
 
     @staticmethod
     def _get_space_separated_values(input):
@@ -326,7 +370,7 @@ class cli:
 
 if __name__ == '__main__':
     log = LogWrap("cli-customer-completer")
-    state_object = state()
+    state_object = state(log)
     c = cli(state_object)
     if len(sys.argv) == 2:
         with open(sys.argv[1]) as file_handle:

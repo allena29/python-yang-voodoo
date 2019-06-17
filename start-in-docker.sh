@@ -19,13 +19,15 @@ cd /working/subscribers
 touch /tmp/sysrepod-just-launched
 
 echo "Ready"
-cd /working/clients
+cd /working
 
 if [ -f "/builder" ]
 then
   ./run-test.sh
 fi
 
+
+cd /working/clients
 if [ $? = 0 ]
 then
   ./interactive

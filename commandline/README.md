@@ -16,3 +16,8 @@
 `set bronze silver gold p parts-1=p len(text)=24 gotoparent=22`
 
 Once we hit 22 we know to call ._parent
+
+
+# TODO
+
+- What happens if we do <CTRL>+C

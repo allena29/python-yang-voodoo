@@ -1,3 +1,4 @@
+*.cli
 .yangvoodoo-cli-history
 debs/
 __pycache__/

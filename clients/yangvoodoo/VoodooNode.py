@@ -16,7 +16,11 @@ class Context:
         self.yang_module = module
 
 
-class Node:
+class Voodoo:
+    pass
+
+
+class Node(Voodoo):
 
     """
     Constraints:
@@ -735,7 +739,7 @@ class Root(ContainingNode):
         templater.from_xmlstr(self, xmlstr)
 
 
-class SuperRoot:
+class SuperRoot(Voodoo):
 
     _NODE_TYPE = "SuperRoot"
 

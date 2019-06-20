@@ -8,27 +8,27 @@ from prompt_toolkit.formatted_text import HTML
 from prompt_toolkit import PromptSession
 from prompt_toolkit.completion import WordCompleter
 from prompt_toolkit.validation import Validator, ValidationError
-from prompt_toolkit.auto_suggest import AutoSuggestFromHistory
+# from prompt_toolkit.auto_suggest import AutoSuggestFromHistory
 from prompt_toolkit.completion import Completer, Completion
 from prompt_toolkit.history import FileHistory
 
 
 class MyCompleter(Completer):
-    def get_completions(self, document, complete_event):
+    def get_completions(self, document, complete_event, _state_object_and_log=None):
         global log, state_object
-        complete_this = document.text
+        if _state_object_and_log:
+            (state_object, log) = _state_object_and_log
 
+        complete_this = document.text
         if not state_object.current_command:
             options = state_object.get_command_completions(complete_this, validator=False)
         else:
             parts = state._get_space_separated_values(document.text)
-            log.info('did we get here %s', str(parts))
             # This is required to make sure the completions for the next node work - otherwise
             # it tries to match the previous word
             if document.text[-1] == ' ':
                 parts.pop()
                 parts.append('')
-            log.info("asking for completions on __%s__ %s", complete_this, str(parts))
             options = state_object.get_completions(complete_this, parts, validator=False)
 
         for (option, display, visibility) in options:
@@ -42,9 +42,13 @@ class MyCompleter(Completer):
 class MyValidator(Validator):
 
     def _error(self, message, delete_last_character=True, terminal_bell=True):
+        global log
         if terminal_bell:
             sys.stdout.write("\a")
         if delete_last_character:
+            if state_object.direction == 'backwards':
+                log.info('going backwards so ignoring backwspace')
+                return
             state_object.buffer.delete_before_cursor(1)
         raise ValidationError(message=message, cursor_position=0)
 
@@ -80,7 +84,6 @@ class MyValidator(Validator):
             state_object.update_current_node(document.text)
             return True
 
-    #    log.info("__%s__ trailing_parts %s options %s", document.text, state_object.number_of_trailing_parts, num_options)
         if state_object.number_of_trailing_parts > 0:
             if len(parts) > state_object.last_part_count + state_object.number_of_trailing_parts:
                 self._error("Too many values")
@@ -138,16 +141,17 @@ class state:
         self.stop_completions_and_validation = False
         self.reset_current_command = 0
         self.go_to_next_node_at_position = 0
+        self.go_to_parent_node_at_position = [0]
+        self.parent_node = [self.root]
         self.number_of_trailing_parts = 0
         self.next_node_number_of_trailing_parts = 0
         self.direction = "never moved"
-        self.previous_node_name = ""
         self.next_node_name = ""
 
     def update_position_and_current_command(self, document_text):
-        self.log.info("Consisdering %s-command  for __%s__ (last %s, number of trailing %s, goto-next-node %s)", self.mode, document_text,
-                      self.last_character_position, self.next_node_number_of_trailing_parts, self.go_to_next_node_at_position)
-        self.log.info("Node %s", self.current_node)
+        # self.log.info("Consisdering %s-command  for __%s__ (last %s, number of trailing %s, goto-next-node %s)", self.mode, document_text,
+        #               self.last_character_position, self.next_node_number_of_trailing_parts, self.go_to_next_node_at_position)
+        # self.log.info("Node %s", self.current_node)
         if len(document_text) < self.last_character_position:
             self.direction = 'backwards'
         else:
@@ -157,14 +161,33 @@ class state:
             self.current_command = None
             self.reset_current_command = 0
 
+        self.log.info('%s/%s go-parent%s go-next%s', self.direction, len(document_text),
+                      self.go_to_parent_node_at_position, self.go_to_next_node_at_position)
+
+        if self.direction == 'backwards':
+            self.log.info('going backwards...........%s', len(document_text))
+            if len(document_text) <= self.go_to_parent_node_at_position[-1]:
+                parent_node_pos = self.go_to_parent_node_at_position.pop()
+                parent_node = self.parent_node.pop()
+                self.log.info(' set current node with a switcher-roo to %s', parent_node)
+                self.log.info(' %s ..%s ', len(document_text), document_text)
+                self.current_node = parent_node
+                self.log.info(' parentNode_pos %s', parent_node_pos)
         self.last_character_position = len(document_text)
 
     def update_current_node(self, document_text):
-
+        """
+        This only gets called when we have exactly 1 completion
+        """
         if self.direction == 'forwards' and len(document_text) >= self.go_to_next_node_at_position and self.go_to_next_node_at_position > 0:
+            self.parent_node.append(self.current_node)
+            self.go_to_parent_node_at_position.append(len(document_text))
             self.current_node = self.current_node[self.next_node_name]
             self.number_of_trailing_parts = self.next_node_number_of_trailing_parts
             self.go_to_next_node_at_position = 0
+
+            self.log.info('SWITCHING FORWARD %s/%s go-parent%s go-next%s ', self.direction, len(document_text),
+                          self.go_to_parent_node_at_position, self.go_to_next_node_at_position)
 
     def get_command_completions(self, document_text, validator=True):
         """
@@ -183,21 +206,20 @@ class state:
                     yield (completion[len(document_text):], completion, visibility)
 
     def get_completions(self, document_text, parts, validator=True):
-        """
-        """
         if self.number_of_trailing_parts > 0:
-            log.info("No offeringup any completions")
             return
 
         last_part = parts[-1]
-        self.log.info('GC : len(%s) %s %s __%s__  __%s__', len(document_text), self.direction, self.current_command, document_text, last_part)
+        self.log.info('GC : len(%s)%s/%s doctext:%s_ lastpart:%s_ ', len(document_text), self.direction,
+                      self.current_command, document_text, last_part)
+        self.log.info('   : %s/%s', self.current_node, self.parent_node)
 
         if isinstance(self.current_node, yangvoodoo.VoodooNode.Voodoo):
-            self.log.info("getting completsions from %s", self.current_node)
+            # self.log.info("getting completsions from %s", self.current_node)
             completions = self.current_node._children()
-            self.log.info("%s" % (str(completions)))
+            # self.log.info("%s" % (str(completions)))
         else:
-            self.log.info("skipping completions becuase node doesnt look voodoo like %s", self.current_node)
+            # self.log.info("skipping completions becuase node doesnt look voodoo like %s", self.current_node)
             return True
 
         answers = []
@@ -205,13 +227,10 @@ class state:
             if completion[0:len(last_part)] == last_part:
                 answers.append((completion[len(last_part):], completion, True))
 
-        self.log.info('still going???')
         if len(answers) == 1:
-            log.info("only one option left")
-
-            self.go_to_parent_node_at_position = len(document_text)
-            self.parent_node = self.current_node
-            self.previous_node_name = self.next_node_name
+            # self.go_to_parent_node_at_position = len(document_text)
+            # self.parent_node = self.current_node
+            # self.parent_node_name = self.next_node_name
             self.next_node_name = answers[0][1]
 
             self.next_node_number_of_trailing_parts = state.how_many_trailing_parts(self.current_node, answers[0][1])
@@ -244,10 +263,10 @@ class state:
         self.mode = 1
         self.current_command = None
         self.number_of_trailing_parts = 0
-        self.go_to_parent_node_at_position = 0
+        self.go_to_parent_node_at_position = [0]
+        self.parent_node = []
         self.go_to_next_node_at_position = 0
         self.next_node_name = ""
-        self.previous_node_name = ""
         self.last_part_count = 0
         self.next_node_number_of_trailing_parts = 0
 
@@ -255,10 +274,10 @@ class state:
         self.mode = 0
         self.current_command = None
         self.number_of_trailing_parts = 0
-        self.go_to_parent_node_at_position = 0
+        self.go_to_parent_node_at_position = [0]
+        self.parent_node = []
         self.go_to_next_node_at_position = 0
         self.next_node_name = ""
-        self.previous_node_name = ""
         self.last_part_count = 0
         self.next_node_number_of_trailing_parts = 0
 
@@ -317,7 +336,7 @@ class cli:
                                   complete_while_typing=True,
                                   validate_while_typing=True,
                                   vi_mode=True,
-                                  auto_suggest=AutoSuggestFromHistory()
+                                  # auto_suggest=AutoSuggestFromHistory()
                                   )
 
     def loop(self):

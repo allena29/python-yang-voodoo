@@ -1,7 +1,7 @@
 import prompt_toolkit
 import unittest
 from mock import Mock
-from cli import cli, state, MyValidator
+from cli import state, MyValidator, MyCompleter
 
 
 class test_validation_and_completion(unittest.TestCase):
@@ -91,3 +91,33 @@ class test_validation_and_completion(unittest.TestCase):
         self.assertEqual(str(context.exception), "Not enough!")
 
         self.state_object.buffer.delete_before_cursor.assert_not_called()
+
+    def test_completer(self):
+        """
+        Note this error doesn't actually delete the output.
+        """
+        # Build
+        self.state_object.current_command = 'set'
+        self.state_object.direction = 'forwards'
+        self.state_object.stop_completions_and_validation = False
+        self.state_object.number_of_trailing_parts = 0
+        self.state_object.last_part_count = 2
+        self.state_object.get_completions = Mock(return_value=[
+            ('leaf', 'simpleleaf', True), ('list', 'simplelist', True)
+        ])
+
+        document = Mock()
+        document.text = "set simple"
+        self.subject = MyCompleter()
+
+        # Act
+        results = self.subject.get_completions(document, None, (self.state_object, self.log))
+
+        # Assert
+        expected_results = [
+            ('leaf', 'simpleleaf'),
+            ('list', 'simple'),
+        ]
+        for result in results:
+            self.assertEqual(result.text, expected_results[0][0])
+            expected_results.pop(0)

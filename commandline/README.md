@@ -1,23 +1,59 @@
 # Internals
 
- `set bronze silver gold platinum parts-1=platinum len(text)=31 gotoparent=22`
+In this document \_ means a trailing space
 
-  - `document.text` = `set bronze silver gold platinum`
-  - `parts` regular expression used to find the space separated parts (allowing for quoted strings)
-  - `parts[-1]` = `platinum`
-  - `len(document.text)` = 31
-  - `gotoparent` - the position where we need to trigger going up to a parent node.
+The example is
 
-
-
-# Backspacing
-
-
-`set bronze silver gold p parts-1=p len(text)=24 gotoparent=22`
-
-Once we hit 22 we know to call ._parent
+- cli
+  - a
+  - aaaa
+  - b
+  - c
+  - d
+  - zzz
+    - zebedee
+    - zebra
+    - zoo
 
 
-# TODO
+## The forwards direction
 
-- What happens if we do <CTRL>+C
+Mostly handled by this code.
+
+`if self.direction == 'forwards' and len(document_text) >= self.go_to_next_node_at_position and self.go_to_next_node_at_position > 0:`
+
+`set cl`
+
+- len(document.text) = 6
+- we set next-node to character position 7
+- currentNode is root
+- lastpart is the string split by string (taking account of quoted strings) and is `cl`
+
+
+`set cli`
+
+- len(document.text) = 7
+- we reset next-node at character position to 0
+- we set parent-node at charcater to position to 7
+- set currentNode to `/cli`
+- previous node is now `/`
+
+`set cli_`
+
+- ipython kicks in autocomplete, we are doing `_children` on currentNode and find what we have avaialble.
+- lastpart is a blank string ''
+- len(document.text) = 8
+
+`set cli z`
+
+- **once we get to a single child option - zzz is the option**
+- we reset next node at character position to 11 (set cli + zzz == 11)
+- currentNode is `/cli`
+- previousNode is `/`
+
+`set cli zzz`
+
+- we reset next-node at character position o 0
+- we set parent-node at charcater position to 11
+- currentNode is `/cli/zzz`
+- previousNode is `/cli`

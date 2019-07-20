@@ -152,3 +152,21 @@ class NodeProvidedIsNotAContainer(Exception):
         message = "Require a containing node not a leaf"
 
         super().__init__(message)
+
+
+class UnableToLockDatastoreError(Exception):
+
+    def __init__(self, other_lock_owner):
+        message = "Unable to lock the datastore to commit our changes.\n"
+        message = message + "Locked by " + str(other_lock_owner)
+
+        super().__init__(message)
+
+
+class LockWasBrokenDuringTransactionError(Exception):
+
+    def __init__(self, other_lock_owner):
+        message = "Unable to unlock the datastore.\n"
+        message = message + "Locked broken by " + str(other_lock_owner)
+
+        super().__init__(message)

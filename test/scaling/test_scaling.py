@@ -2,6 +2,8 @@ import unittest
 import yangvoodoo
 from yangvoodoo.TemplateNinja import TemplateNinja
 import yangvoodoo.stubdal
+import yangvoodoo.redisdal
+
 import time
 
 
@@ -10,7 +12,10 @@ class test_nested_list_stuff(unittest.TestCase):
     def setUp(self):
         self.maxDiff = None
         self.stub = yangvoodoo.stubdal.StubDataAbstractionLayer()
-        self.session = yangvoodoo.DataAccess(data_abstraction_layer=self.stub, disable_proxy=True)
+        self.redis = yangvoodoo.redisdal.RedisDataAbstractionLayer()
+
+        self.session = yangvoodoo.DataAccess(data_abstraction_layer=self.redis, disable_proxy=True)
+    #    self.session = yangvoodoo.DataAccess(data_abstraction_layer=self.stub, disable_proxy=True)
         self.session.connect('integrationtest')
         self.root = self.session.get_node()
         self.template_ninja = TemplateNinja()
@@ -165,7 +170,7 @@ class test_nested_list_stuff(unittest.TestCase):
                     this_node = this_node._parent.get(key)
 
         end_time = time.time()
-        self.assertExecutionTime(start_time, end_time, 0.25, 0.6)
+        self.assertExecutionTime(start_time, end_time, 0.27, 0.6)
         print("Add three thousand entries to one list", end_time-start_time)
 
     def test_change_leaf_3000_times(self):

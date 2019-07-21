@@ -11,7 +11,8 @@ RUN \
       apt-transport-https \
       python3 \
       python3-pip \
-      libpython3.7
+      libpython3.7 \
+      redis
 
 RUN \
       apt-get update && apt-get install -y \
@@ -231,7 +232,7 @@ RUN \
 
 
 RUN \
-    pip3 install lxml jinja2 dictdiffer six asn1crypto && \
+    pip3 install lxml jinja2 dictdiffer six asn1crypto redis && \
     pip3 install mock coverage nose2 autopep8 pyflakes xenon coveralls && \
     cd /working && \
     echo "Git Pull (v2)" && \

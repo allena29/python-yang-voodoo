@@ -69,6 +69,15 @@ function combine_reports {
     mv .coverage htmlcov-integration
     coverage combine htmlcov-integration/.coverage .coverage-previous
     coverage html
+    mv .coverage .coverage-previous
+  fi
+
+  if [ $4 = "1" ]
+  then
+    mv htmlcov htmlcov-rintegration
+    mv .coverage htmlcov-rintegration
+    coverage combine htmlcov-rintegration/.coverage .coverage-previous
+    coverage html
   fi
 }
 
@@ -99,7 +108,7 @@ fi
 
 if [ -f "/.dockerenv" ]
 then
-  printf "\n\e[1;33mIntegration Tests.....\e[0m\n"
+  printf "\n\e[1;33mIntegration Tests (Sysrepo).....\e[0m\n"
 else
   printf "\n\e[0;33mNot running inside docker - skipping integration tests.\e[0m\n"
   testtype="unit"
@@ -115,14 +124,42 @@ then
   nose2 -s test/integration -t . -v --with-coverage --coverage-config .coveragerc --coverage-report html
   if [ $? != 0 ]
   then
-    printf "\n\e[1;31mIntegration tests.. (Extended Set) Failed\e[0m\n"
+    printf "\n\e[1;31mIntegration tests.. (Sysrepo) Failed\e[0m\n"
     combine_reports 0 0 0 0
     exit 1;
   else
-    printf "\n\e[1;32mIntegration tests.. (Extended Set) Passed\e[0m\n"
+    printf "\n\e[1;32mIntegration tests.. (Sysrepo) Passed\e[0m\n"
     combine_reports 0 0 1 0
   fi
 fi
+
+
+
+if [ -f "/.dockerenv" ]
+then
+  printf "\n\e[1;33mIntegration Tests (Redis).....\e[0m\n"
+else
+  printf "\n\e[0;33mNot running inside docker - skipping integration tests.\e[0m\n"
+  testtype="unit"
+fi
+
+if [ "$testtype" = "all" ]
+then
+  nose2 -s test/rintegration -t . -v --with-coverage --coverage-config .coveragerc --coverage-report html
+  if [ $? != 0 ]
+  then
+    printf "\n\e[1;31mIntegration tests.. (Redis) Failed\e[0m\n"
+    combine_reports 0 0 0 0
+    exit 1;
+  else
+    printf "\n\e[1;32mIntegration tests.. (Redis) Passed\e[0m\n"
+    combine_reports 0 0 0 1
+  fi
+fi
+
+
+
+
 
 printf "\n\e[1;33mCoverage Report.....\e[0m\n"
 coverage report

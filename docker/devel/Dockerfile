@@ -14,7 +14,8 @@ RUN \
       openssh-client \
       python3-distutils \
       screen \
-      libpython3.7
+      libpython3.7 \
+      redis
 
 RUN \
     mkdir -p /root/.ipython/profile_default   && \
@@ -39,7 +40,7 @@ RUN \
 RUN \
       python3 /get-pip.py && \
       rm -f /get-pip.py && \
-      pip3 install lxml jinja2 dictdiffer six asn1crypto
+      pip3 install lxml jinja2 dictdiffer six asn1crypto redis
 
 RUN \
     cd /working && \

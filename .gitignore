@@ -8,6 +8,7 @@ libyang-cffi/
 dist/
 *.pyc
 htmlcov-integration/
+htmlcov-rintegration/
 htmlcov-unit/
 htmlcov-unitcore/
 htmlcov/
@@ -16,3 +17,4 @@ htmlcov/
 git-clone/
 .ipynb_checkpoints/
 .coverage-previous
+*.rdb

@@ -1,6 +1,7 @@
 #!/bin/bash
 
 sysrepod
+redis-server &
 #sysrepo-plugind
 # netopeer2-server
 

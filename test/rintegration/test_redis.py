@@ -25,24 +25,24 @@ class test_redis(unittest.TestCase):
 
         result = self.session.set(xpath, "hello")
         self.assertEqual(result, True)
-        self.assertEqual(self.session.data_abstraction_layer.paths_set, {xpath: 'hello'})
+        self.assertEqual(self.session.data_abstraction_layer.paths_set, {"/data-leaf"+xpath: 'hello'})
 
         self.assertEqual("hello", self.root.simpleleaf)
 
         result = self.session.delete(xpath)
         self.assertEqual(result, True)
-        self.assertTrue(xpath in self.session.data_abstraction_layer.paths_removed)
+        self.assertTrue("/data-leaf"+xpath in self.session.data_abstraction_layer.paths_removed)
 
         result = self.session.set(xpath, "world")
         self.assertEqual(result, True)
-        self.assertEqual(self.session.data_abstraction_layer.paths_set, {xpath: 'world'})
-        self.assertFalse(xpath in self.session.data_abstraction_layer.paths_removed)
+        self.assertEqual(self.session.data_abstraction_layer.paths_set, {"/data-leaf"+xpath: 'world'})
+        self.assertFalse("/data-leaf"+xpath in self.session.data_abstraction_layer.paths_removed)
 
         result = self.session.commit()
         self.assertTrue(result)
 
-        self.assertFalse(xpath in self.session.data_abstraction_layer.paths_set)
-        self.assertFalse(xpath in self.session.data_abstraction_layer.paths_removed)
+        self.assertFalse("/data-leaf"+xpath in self.session.data_abstraction_layer.paths_set)
+        self.assertFalse("/data-leaf"+xpath in self.session.data_abstraction_layer.paths_removed)
 
         result = self.session.get(xpath)
         self.assertEqual(result, 'world')

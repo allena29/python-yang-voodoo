@@ -6,7 +6,8 @@ RUN apk add git cmake swig python3-dev libxml2-dev libtool \
             py3-setuptools readline-dev libxslt-dev make \
             protobuf-c-dev libev-dev openssl-dev \
             boost-thread libffi-dev bison automake zlib-dev \
-            gcc g++ flex pcre-dev alpine-sdk vim musl-dev screen
+            gcc g++ flex pcre-dev alpine-sdk vim musl-dev screen \
+            redis
 
 RUN mkdir /opt/dev
 WORKDIR /opt/dev
@@ -24,7 +25,8 @@ RUN \
       git clone https://github.com/allena29/libyang-cffi.git && \
       git clone https://github.com/allena29/python-yang-voodoo.git /working && \
       cd /working && \
-      pip3 install -r requirements.txt
+      pip3 install -r requirements.txt && \
+      pip3 install redis
 
 # libyang
 RUN \
@@ -40,7 +42,7 @@ RUN \
 RUN \
       cd /working && \
       git checkout devel && \
-      python3 setup.py install
+      LIBYANG_INSTALL=system python3 setup.py install
 RUN \
       cd /opt/dev && \
       cd libyang-cffi && \
@@ -62,4 +64,3 @@ RUN \
       make -j6 && \
       make install && \
       ln -s /usr/local/lib64/*ysrepo* /usr/local/lib
-

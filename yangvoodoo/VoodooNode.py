@@ -415,9 +415,9 @@ class List(ContainingNode):
 
         node = Common.Utils.get_yangnode(node, context, keys=keys, values=values)
 
-        context.dal.create(node.real_data_path, keys=keys, values=values)
+        context.dal.create(node.real_data_path, keys=keys, values=values, list_xpath=node.parent_data_path)
         # Return Object
-        new_node = Common.YangNode(node.libyang_node, node.real_schema_path, node.real_data_path)
+        new_node = Common.YangNode(node.libyang_node, node.real_schema_path, node.real_data_path, node.parent_data_path)
         return ListElement(context, new_node, self)
 
     def __len__(self):
@@ -471,7 +471,7 @@ class List(ContainingNode):
         this_xpath = results[-1]
 
         # Return Object
-        new_node = Common.YangNode(node.libyang_node, node.real_schema_path, this_xpath)
+        new_node = Common.YangNode(node.libyang_node, node.real_schema_path, this_xpath, node.parent_data_path)
         return ListElement(context, new_node, self)
 
     def get_first(self, sorted_by_xpath=False):
@@ -492,7 +492,7 @@ class List(ContainingNode):
         this_xpath = results[0]
 
         # Return Object
-        new_node = Common.YangNode(node.libyang_node, node.real_schema_path, this_xpath)
+        new_node = Common.YangNode(node.libyang_node, node.real_schema_path, this_xpath, node.parent_data_path)
         return ListElement(context, new_node, self)
 
     def get(self, *args):
@@ -511,10 +511,10 @@ class List(ContainingNode):
         node = self._node
         (keys, values) = Common.Utils.get_key_val_tuples(context, node, list(args))
         predicates = Common.Utils.encode_xpath_predicates('', keys, values)
-        if not context.dal.has_item(node.real_data_path + predicates):
+        if not context.dal.has_item(node.real_data_path + predicates, node.real_data_path):
             raise Errors.ListDoesNotContainElement(node.real_data_path + predicates)
         # Return Object
-        new_node = Common.YangNode(node.libyang_node, node.real_schema_path, node.real_data_path+predicates)
+        new_node = Common.YangNode(node.libyang_node, node.real_schema_path, node.real_data_path+predicates, node.parent_data_path)
         return ListElement(context, new_node, self)
 
     def __iter__(self):
@@ -529,18 +529,18 @@ class List(ContainingNode):
         (keys, values) = Common.Utils.get_key_val_tuples(context, node, list(args))
         predicates = Common.Utils.encode_xpath_predicates('', keys, values)
 
-        return context.dal.has_item(node.real_data_path + predicates)
+        return context.dal.has_item(node.real_data_path + predicates, node.real_data_path)
 
     def __getitem__(self, *args):
         context = self._context
         node = self._node
         (keys, values) = Common.Utils.get_key_val_tuples(context, node, list(args))
         predicates = Common.Utils.encode_xpath_predicates('', keys, values)
-        if not context.dal.has_item(node.real_data_path + predicates):
+        if not context.dal.has_item(node.real_data_path + predicates, node.real_data_path):
             raise Errors.ListDoesNotContainElement(node.real_data_path + predicates)
 
         # Return Object
-        new_node = Common.YangNode(node.libyang_node, node.real_schema_path, node.real_data_path+predicates)
+        new_node = Common.YangNode(node.libyang_node, node.real_schema_path, node.real_data_path+predicates, node.real_data_path)
         return ListElement(context, new_node, self)
 
     def __delitem__(self, *args):
@@ -548,7 +548,7 @@ class List(ContainingNode):
         node = self._node
         (keys, values) = Common.Utils.get_key_val_tuples(context, node, list(args))
         predicates = Common.Utils.encode_xpath_predicates('', keys, values)
-        context.dal.uncreate(node.real_data_path + predicates)
+        context.dal.uncreate(node.real_data_path + predicates, node.real_data_path)
 
         return None
 
@@ -602,7 +602,7 @@ class ListIterator(Node):
         parent = self._parent
         this_xpath = next(self._iterator)
         # Return Object
-        new_node = Common.YangNode(node.libyang_node, node.real_schema_path, this_xpath)
+        new_node = Common.YangNode(node.libyang_node, node.real_schema_path, this_xpath, node.parent_data_path)
         return ListElement(context, new_node, parent)
 
     def __repr__(self):

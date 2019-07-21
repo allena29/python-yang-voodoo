@@ -111,20 +111,20 @@ Implementing a new data_abastraction_layer is as simple as implementing the foll
  - **has_datastore_changed()** - indicates changes have been made to the datastore from a different transaction.
  - **container(xpath)** - returns True/False if the presence-container exists.
  - **get(xpath, default_value)** - get specific data by XPATH, this will not apply to non-presence containers or lists
- - **gets_unsorted(xpath, schema_path, ignore_empty_lists)** - get a list of XPATH's representing the items in the list, it is expected the datastore will maintain the order the user inserts the data and this MUST return the data in that order. If the list is empty this method will normally raise an ListDoesNotContainElement exception.
- - **gets_unsorted(xpath, schema_path, ignore_empty_lists)** - as gets_unsorted, but the results will be sorted by XPATH.
- - **gets_len(xpath)** - gets back number of list elements available in the list (Not for leaf-lists)
+ - **gets_unsorted(list_xpath, schema_path, ignore_empty_lists)** - get a list of XPATH's representing the items in the list, it is expected the datastore will maintain the order the user inserts the data and this MUST return the data in that order. If the list is empty this method will normally raise an ListDoesNotContainElement exception.
+ - **gets_sorted(list_xpath, schema_path, ignore_empty_lists)** - as gets_unsorted, but the results will be sorted by XPATH.
+ - **gets_len(list_xpath)** - gets back number of list elements available in the list (Not for leaf-lists)
  - **gets(xpath)** - gets a generator back of values for a specific XPATH (leaf lists only)
  - **add(xpath, value, valuetype)** - add a new entry to the end of a leaf-list at the given XPATH
  - **remove(xpath, value)** - remvoes an entry from a leaf-list at the given XPATH - the XPATH given is the XPATH to the leaf-list itself, not the specific item.
- - **has_item(xpath)**- returns True if the item has been populated with data.
- - **create(xpath, key_tuple, value_tuple)** - create a list item, to remove use **uncreate**
- - **uncreate(xpath** - delete a list element from the datastore.
+ - **has_item(xpath, list_xpath)**- returns True if the item has been populated with data.
+ - **create(xpath, key_tuple, value_tuple, list_xpath)** - create a list item, to remove use **uncreate**
+ - **uncreate(xpath, list_xpath** - delete a list element from the datastore.
  - **create_container(xpath)** - if a container is a presence container explicitly create the container.
  - **set(xpath, value, valuetype)** - sets the value of a specific xpath (supported for yang leaves). The valuetype is an integer (defined in Types.py/DATA_ABSTRACTION_MAPPING) based on the effective type of the yang field (*based on fuzzy matching in the case of unions*).
  - **delete(xpath** - delete a value or container, this method must not be used for lists.
  - **empty()** - a dangerous option which will remove everything from the datastore.
- 
+
 ### SCHEMA vs DATA level constraints
 
 There are some validation and constraints that are schema level, that is they are defined in the yang model and have no dependency on the data in the datastore. ~~Schema based constraints are enforced by libyang without a requirement to run a full datastore (like sysrepo).~~ Note: sysrepo actually calls libyang to perform the validation with the full dataset.

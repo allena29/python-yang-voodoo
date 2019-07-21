@@ -145,7 +145,7 @@ class SysrepoDataAbstractionLayer(yangvoodoo.basedal.BaseDataAbstractionLayer):
         except RuntimeError as err:
             self._handle_error(xpath, err)
 
-    def create(self, xpath, keys=None, values=None):
+    def create(self, xpath, keys=None, values=None, list_xpath=None):
         """
         Create a list item by XPATH including keys
          e.g. / path/to/list[key1 = ''][key2 = ''][key3 = '']
@@ -159,7 +159,7 @@ class SysrepoDataAbstractionLayer(yangvoodoo.basedal.BaseDataAbstractionLayer):
         except RuntimeError as err:
             self._handle_error(xpath, err)
 
-    def uncreate(self, xpath):
+    def uncreate(self, xpath, list_xpath=None):
         self.dirty = True
         self.delete(xpath)
 
@@ -187,7 +187,7 @@ class SysrepoDataAbstractionLayer(yangvoodoo.basedal.BaseDataAbstractionLayer):
         except RuntimeError as err:
             self._handle_error(xpath, err)
 
-    def has_item(self, xpath):
+    def has_item(self, xpath, list_xpath=None):
         """
         Test to determine if a list item exists
         """

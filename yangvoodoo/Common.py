@@ -18,10 +18,11 @@ class YangNode:
     This object will be returned by get_schema_node_from_libyang()
     """
 
-    def __init__(self, libyang_node, real_schema_path, real_data_path):
+    def __init__(self, libyang_node, real_schema_path, real_data_path, parent_data_path):
         self.libyang_node = libyang_node
         self.real_data_path = real_data_path
         self.real_schema_path = real_schema_path
+        self.parent_data_path = parent_data_path
 
     def __getattr__(self, attr):
         if attr in ('real_schema_path', 'real_data_path'):
@@ -413,7 +414,7 @@ class Utils:
             real_schema_path = node.real_schema_path
             node_schema = node
 
-        item = YangNode(node_schema, real_schema_path, real_data_path)
+        item = YangNode(node_schema, real_schema_path, real_data_path, node.real_data_path)
 
         context.schemacache.add_entry(cache_entry, item)
 

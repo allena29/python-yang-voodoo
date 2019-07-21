@@ -94,7 +94,7 @@ class StubDataAbstractionLayer(yangvoodoo.basedal.BaseDataAbstractionLayer):
 
         return item
 
-    def create(self, xpath, keys=[], values=[]):
+    def create(self, xpath, keys=[], values=[], list_xpath=None):
         """
         The xpath coming in should include the full predicates
             /integrationtest:simplelist[integrationtest:simplekey='sdf']
@@ -114,12 +114,7 @@ class StubDataAbstractionLayer(yangvoodoo.basedal.BaseDataAbstractionLayer):
 
         self.log.trace('CREATE-LIST-ELEMENT: %s (keys: %s, values: %s)', xpath, keys, values)
         self.dirty = True
-        predicates = ""
-        for index in range(len(keys)):
-            (value, valuetype) = values[index]
-            predicates = predicates + "["+keys[index]+"='"+str(value)+"']"
 
-        list_xpath = xpath.replace(predicates, '')
         if list_xpath not in self.list_element_map:
             self.list_element_map[list_xpath] = []
         self.list_element_map[list_xpath].append(xpath)
@@ -129,7 +124,7 @@ class StubDataAbstractionLayer(yangvoodoo.basedal.BaseDataAbstractionLayer):
             (value, valuetype) = values[index]
             self.set(xpath + "/" + keys[index], value, valuetype)
 
-    def uncreate(self, xpath):
+    def uncreate(self, xpath, list_xpath=None):
         self.log.trace('UNCREATE-LIST-ELEMENT: %s', xpath)
         self.dirty = True
         self.delete(xpath)
@@ -159,9 +154,8 @@ class StubDataAbstractionLayer(yangvoodoo.basedal.BaseDataAbstractionLayer):
         for item in items:
             yield item
 
-    def has_item(self, xpath):
+    def has_item(self, xpath, list_xpath):
         self.log.trace('HAS_ITEM: %s', xpath)
-        list_xpath = self._list_xpath(xpath, ignore_empty_lists=True)
         if list_xpath in self.list_element_map:
             if xpath in self.list_element_map[list_xpath]:
                 return True

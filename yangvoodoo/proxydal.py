@@ -53,21 +53,21 @@ class ProxyDataAbstractionLayer(yangvoodoo.basedal.BaseDataAbstractionLayer):
         self.value_cached[xpath] = True
         return self.store.create_container(xpath)
 
-    def create(self, xpath, keys=[], values=[]):
+    def create(self, xpath, keys=[], values=[], list_xpath=None):
         self.has_item_cached = {}
         self.unsorted_cached = {}
         self.sorted_cached = {}
         self.len_cached = {}
-        self.cache.create(xpath, keys, values)
-        return self.store.create(xpath, keys, values)
+        self.cache.create(xpath, keys, values, list_xpath=list_xpath)
+        return self.store.create(xpath, keys, values, list_xpath=list_xpath)
 
-    def uncreate(self, xpath, keys=[], values=[], module=None):
+    def uncreate(self, xpath, keys=[], values=[], module=None, list_xpath=None):
         self.has_item_cached = {}
         self.unsorted_cached = {}
         self.sorted_cached = {}
         self.len_cached = {}
-        self.cache.uncreate(xpath)
-        return self.store.uncreate(xpath)
+        self.cache.uncreate(xpath, list_xpath=list_xpath)
+        return self.store.uncreate(xpath, list_xpath=list_xpath)
 
     def add(self, xpath, value, valtype):
         self.cache.add(xpath, value, valtype)
@@ -85,9 +85,9 @@ class ProxyDataAbstractionLayer(yangvoodoo.basedal.BaseDataAbstractionLayer):
         for val in self.value_cached[xpath]:
             yield val
 
-    def has_item(self, xpath):
+    def has_item(self, xpath, list_xpath):
         if xpath not in self.has_item_cached:
-            result = self.store.has_item(xpath)
+            result = self.store.has_item(xpath, list_xpath)
             self.has_item_cached[xpath] = result
         return self.has_item_cached[xpath]
 

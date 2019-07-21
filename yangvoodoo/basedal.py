@@ -99,7 +99,7 @@ class BaseDataAbstractionLayer:
         """
         raise NotImplementedError('create_container not implemented')
 
-    def create(self, xpath, keys=None, values=None, module=None):
+    def create(self, xpath, keys=None, values=None, module=None, list_xpath=None):
         """
         To create a list item in the list /simplelist
 
@@ -108,6 +108,7 @@ class BaseDataAbstractionLayer:
                     tuple of keys in the order defined within yang.
         values:   [('simpleval', 18)],
                     list of (value, valtype) tuples
+        listxpath: /integrationtest:simplelist
 
         module:   integrationtest
 
@@ -121,11 +122,12 @@ class BaseDataAbstractionLayer:
         """
         raise NotImplementedError("create not implemented")
 
-    def uncreate(self, xpath):
+    def uncreate(self, xpath, list_xpath=None):
         """
         To remove a list item from the list /simplelist with the key sf
 
-        xpath:   /integrationtest:simplelist[simplekey='sf']
+        xpath:     /integrationtest:simplelist[simplekey='sf']
+        listxpath: /integrationtest:simplelist
         """
         raise NotImplementedError("uncreate not implemented")
 
@@ -180,7 +182,7 @@ class BaseDataAbstractionLayer:
         """
         raise NotImplementedError("gets_unsorted not implemented")
 
-    def has_item(self, xpath):
+    def has_item(self, xpath, list_xpath):
         """
         Check to see if the list-element of a YANG list exists.
 

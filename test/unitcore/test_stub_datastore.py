@@ -22,9 +22,9 @@ class test_stub_datastore(unittest.TestCase):
 
     def test_create(self):
         self.subject.create("/integrationtest:simplelist[simplekey='sdf']",
-                            keys=('simplekey',), values=(('sdf', 10),))
+                            keys=('simplekey',), values=(('sdf', 10),), list_xpath="/integrationtest:simplelist")
         self.subject.create("/integrationtest:simplelist[simplekey='xyz']",
-                            keys=('simplekey',), values=(('xyz', 10),))
+                            keys=('simplekey',), values=(('xyz', 10),),  list_xpath="/integrationtest:simplelist")
         self.subject.set("/integrationetest:simpleleaf", "ABC")
         self.subject.add("/integrationetest:morecomplex/integrationtest:leaflists/integrationtest:simple", "ABC", 10)
         self.subject.add("/integrationetest:morecomplex/integrationtest:leaflists/integrationtest:simple", "XYZ", 10)

@@ -259,7 +259,7 @@ Children: %s""" % (str(children)[1:-1])
 
         self.data_abstraction_layer.setup_root()
 
-        yang_node = YangNode(PlainObject(), '', '')
+        yang_node = YangNode(PlainObject(), '', '', '')
         self._trace("VoodooNode.Root", yang_node, self.context)
 
         return yangvoodoo.VoodooNode.Root(self.context, yang_node)
@@ -348,7 +348,7 @@ Children: %s""" % (str(children)[1:-1])
             raise yangvoodoo.Errors.NotConnect()
         return self.data_abstraction_layer.create_container(xpath)
 
-    def create(self, xpath, keys=None, values=None):
+    def create(self, xpath, keys=None, values=None, list_xpath=None):
         """
         Create a list item by XPATH including keys
          e.g. /path/to/list[key1='val1'][key2='val2'][key3='val3']
@@ -357,9 +357,9 @@ Children: %s""" % (str(children)[1:-1])
         """
         if not self.connected:
             raise yangvoodoo.Errors.NotConnect()
-        return self.data_abstraction_layer.create(xpath, keys=keys, values=values)
+        return self.data_abstraction_layer.create(xpath, keys=keys, values=values, list_xpath=list_xpath)
 
-    def uncreate(self, xpath):
+    def uncreate(self, xpath, list_xpath=None):
         """
         Remove a list item by XPATH including keys
          e.g. /path/to/list[key1='val1'][key2='val2'][key3='val3']
@@ -368,7 +368,7 @@ Children: %s""" % (str(children)[1:-1])
         """
         if not self.connected:
             raise yangvoodoo.Errors.NotConnect()
-        return self.data_abstraction_layer.uncreate(xpath)
+        return self.data_abstraction_layer.uncreate(xpath, list_xpath)
 
     def set(self, xpath, value, valtype=18):
         """
@@ -447,7 +447,7 @@ Children: %s""" % (str(children)[1:-1])
             raise yangvoodoo.Errors.NotConnect()
         return self.data_abstraction_layer.remove(xpath, value)
 
-    def has_item(self, xpath):
+    def has_item(self, xpath, list_xpath):
         """
         Evaluate if the item is present in the datatsore, determines if a specific XPATH has been
         set, may be called on leaves, presence containers or specific list elements.
@@ -456,7 +456,7 @@ Children: %s""" % (str(children)[1:-1])
         """
         if not self.connected:
             raise yangvoodoo.Errors.NotConnect()
-        return self.data_abstraction_layer.has_item(xpath)
+        return self.data_abstraction_layer.has_item(xpath, list_xpath)
 
     def get(self, xpath, default_value=None):
         """

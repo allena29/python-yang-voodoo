@@ -6,7 +6,6 @@ import time
 
 import Pyro4
 import yangvoodoo
-from yangvoodoo.stublydal import StubLyDataAbstractionLayer
 
 sys.path.append('/Users/adam/python-yang-voodoo')
 
@@ -57,18 +56,66 @@ class Pyro4Bridge:
         self.datastore = datastore_bridge
 
     @Pyro4.expose
-    def test(self, name):
-        print(self.datastore)
+    def container(self, xpath):
+        return datastore_bridge.datastore.container(xpath)
 
-        for x in range(5):
-            yield str(x)
+    @Pyro4.expose
+    def create_container(self, xpath):
+        return datastore_bridge.datastore.create_container(xpath)
+
+    @Pyro4.expose
+    def create(self, xpath, keys, values, module):
+        return datastore_bridge.datastore.create(xpath, keys, values, module)
+
+    @Pyro4.expose
+    def uncreate(self, xpath):
+        return datastore_bridge.datastore.uncreate(xpath)
+
+    @Pyro4.expose
+    def gets(self, xpath):
+        return datastore_bridge.datastore.gets(xpath)
+
+    @Pyro4.expose
+    def add(self, xpath, value, valtype):
+        return datastore_bridge.datastore.add(xpath, value, valtype)
+
+    @Pyro4.expose
+    def remove(self, xpath, value):
+        return datastore_bridge.datastore.remove(xpath, value)
+
+    @Pyro4.expose
+    def set(self, xpath, value, valtype=18, nodetype=4):
+        datastore_bridge.datastore.set(xpath, value, valtype=18, nodetype=4)
+
+    @Pyro4.expose
+    def gets_len(self, xpath):
+        datastore_bridge.log.debug('%s: GETS_LEN: %s', self, xpath)
+        return datastore_bridge.datastore.gets_len(xpath)
+
+    @Pyro4.expose
+    def has_item(self, xpath):
+        return datastore_bridge.datastore.has_item(xpath)
+
+    @Pyro4.expose
+    def gets_unsorted(self, xpath, schema_path, ignore_empty_lists=False):
+        return datastore_bridge.datastore.gets_unsorted(xpath, schema_path, ignore_empty_lists)
+
+    @Pyro4.expose
+    def get(self, xpath, default_value):
+        datastore_bridge.log.debug('%s: GET: %s (default: %s', self, xpath, default_value)
+        return datastore_bridge.datastore.get(xpath, default_value)
+
+    @Pyro4.expose
+    def dumps(self, format):
+        return datastore_bridge.datastore.dumps(format)
 
 
-def startup(yang_model, yang_location=None, hostname='192.168.3.1', nameserver='192.168.1.28'):
+def startup(yang_model, yang_location=None, hostname='192.168.3.1', nameserver='192.168.1.28',
+            hmac_key='this-value-is-a-dummy-hmac-key'):
     object_id = "net.mellon-collie.yangvooodoo.pyro4bridge." + hostname
     datastore_bridge.connect(yang_model, yang_location)
     daemon = Pyro4.Daemon(host=hostname)
-    daemon._pyroHmacKey = 'WRONG'
+    daemon._pyroHmacKey = hmac_key
     ns = Pyro4.locateNS(nameserver)
     datastore_bridge.log.info("Registered: %s via %s", object_id, nameserver)
     uri = daemon.register(Pyro4Bridge)

@@ -77,11 +77,11 @@ nose2 -s test/unitcore -t . -v --with-coverage --coverage-config .coveragerc --c
 if [ $? != 0 ]
 then
   printf "\n\e[1;31mUnit tests.. (Core Set) Failed\e[0m\n"
-  combine_reports 0 0 0 0
+  combine_reports 0 0 0 0 0 0
   exit 1;
 else
   printf "\n\e[1;32mUnit tests.. (Core Set) Passed\e[0m\n"
-  combine_reports 1 0 0 0
+  combine_reports 1 0 0 0 0 0
 fi
 
 
@@ -90,11 +90,11 @@ nose2 -s test/unit -t . -v --with-coverage --coverage-config .coveragerc --cover
 if [ $? != 0 ]
 then
   printf "\n\e[1;31mUnit tests.. (Extended Set) Failed\e[0m\n"
-  combine_reports 0 0 0 0
+  combine_reports 0 0 0 0 0 0
   exit 1;
 else
   printf "\n\e[1;32mUnit tests.. (Extended Set) Passed\e[0m\n"
-  combine_reports 0 1 0 0
+  combine_reports 0 1 0 0 0 0
 fi
 
 if [ -f "/.dockerenv" ]
@@ -110,17 +110,33 @@ then
   printf "\n\e[0;33mRequested to only run unit tests\e[0m\n"
 fi
 
+
 if [ "$testtype" = "all" ]
 then
   nose2 -s test/integration -t . -v --with-coverage --coverage-config .coveragerc --coverage-report html
   if [ $? != 0 ]
   then
     printf "\n\e[1;31mIntegration tests.. (Extended Set) Failed\e[0m\n"
-    combine_reports 0 0 0 0
+    combine_reports 0 0 0 0 0 0
     exit 1;
   else
     printf "\n\e[1;32mIntegration tests.. (Extended Set) Passed\e[0m\n"
-    combine_reports 0 0 1 0
+    combine_reports 0 0 1 0 0 0
+  fi
+fi
+
+if [ "$testtype" = "all" ]
+then
+  pytest -vv --disable-warnings --cov-config=.coveragerc --cov-report=html --cov=./ tests/pytest_integration
+
+  if [ $? != 0 ]
+  then
+    printf "\n\e[1;31mIntegration tests (pytest based).. (Extended Set) Failed\e[0m\n"
+    combine_reports 0 0 0 0 0 0
+    exit 1;
+  else
+    printf "\n\e[1;32mIntegration tests (pytest based).. (Extended Set) Passed\e[0m\n"
+    combine_reports 0 0 1 0 0 0
   fi
 fi
 

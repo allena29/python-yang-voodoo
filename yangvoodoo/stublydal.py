@@ -164,15 +164,22 @@ class StubLyDataAbstractionLayer(BaseDataAbstractionLayer):
 
     def get(self, xpath, default_value=None):
         self.log.trace('GET: StubLy Datastore- %s (default: %s)', xpath, default_value)
+        val = None
+
         try:
+            self.log.trace('sdf')
             val = next(self.libyang_data.get_xpath(xpath)).value
+            self.log.trace('sdf')
         except StopIteration:
             return None
-
+        self.log.trace('aaa')
         if val:
+            self.log.trace('returning before default: %s', val)
             return val
         if default_value:
+            self.log.trace('reutning default')
             return default_value
+        self.log.trace('returning None %s', default_value)
         return None
 
     def delete(self, xpath):

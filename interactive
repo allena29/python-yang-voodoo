@@ -24,7 +24,7 @@ print()
 
 # Using Stub backend
 import yangvoodoo.stublydal
-stub = yangvoodoo.stublydal.StubLyDataAbstractionLayer()
+stub = yangvoodoo.stublydal.StubLyDataAbstractionLayer(log_level=2)
 session = yangvoodoo.DataAccess(data_abstraction_layer=stub)
 
 session.connect('integrationtest', yang_location='yang')

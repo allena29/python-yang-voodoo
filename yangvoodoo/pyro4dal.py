@@ -1,6 +1,5 @@
 import Pyro4
 import yangvoodoo
-from yangvoodoo.Common import Utils
 
 
 class PyroDataAbstractionLayer(yangvoodoo.basedal.BaseDataAbstractionLayer):

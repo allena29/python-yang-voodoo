@@ -6,7 +6,6 @@ import time
 
 import Pyro4
 import yangvoodoo
-from yangvoodoo.stublydal import StubLyDataAbstractionLayer
 
 sys.path.append('/Users/adam/python-yang-voodoo')
 

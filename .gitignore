@@ -20,3 +20,5 @@ git-clone/
 .coverage-previous
 .DS_Store
 .pyro.sql
+*.pid
+*.session

@@ -1,0 +1,14 @@
+<toplevel-list xmlns="http://brewerslabng.mellon-collie.net/yang/integrationtest-form">
+<one>a</one>
+<two>
+  <three>3</three>
+</two>
+<four>4</four>
+</toplevel-list>
+<toplevel-list xmlns="http://brewerslabng.mellon-collie.net/yang/integrationtest-form">
+  <one>b</one>
+  <two>
+    <three>b3</three>
+  </two>
+  <four>b4</four>
+</toplevel-list>

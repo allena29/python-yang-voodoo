@@ -74,6 +74,20 @@ LIBYANG_LEAF_TYPES = {
     17: "UINT32",
     18: "INT64",
     19: "UINT64",
+    'BOOLEAN': 3,
+    'DECIMAL64': 4,
+    'EMPTY': 5,
+    'ENUM': 6,
+    'STRING': 10,
+    'UNION': 11,
+    'INT8': 12,
+    'UINT8': 13,
+    'INT16': 14,
+    'UINT16': 15,
+    'INT32': 16,
+    'UINT32': 17,
+    'INT64': 18,
+    'UINT64': 19
 }
 
 LIBYANG_LEAFTYPE = {

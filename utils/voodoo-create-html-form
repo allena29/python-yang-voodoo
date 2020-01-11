@@ -1,0 +1,17 @@
+#!/usr/bin/env python3
+
+import argparse
+import sys
+from yangvoodoo.Web import FormGenerator
+
+parser = argparse.ArgumentParser(description='Build a web-form from a yang model and optional data payloads.')
+parser.add_argument('--format',  action='store')
+parser.add_argument('--data', action='append')
+parser.add_argument('--yanglocation', action='store')
+parser.add_argument('yang')
+
+
+args = parser.parse_args()
+
+webtools = FormGenerator(args.yang, args.format, args.data, yang_location=args.yanglocation)
+webtools.build()

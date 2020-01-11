@@ -1,0 +1,71 @@
+module form {
+
+  namespace "http://brewerslabng.mellon-collie.net/yang/integrationtest-form";
+  prefix "form";
+  yang-version 1.1;
+
+  leaf topleaf {
+    type string;
+  }
+
+  list toplevel-list {
+    key one;
+
+    leaf one {
+      type string;
+    }
+
+    container two {
+      leaf three {
+        type string;
+      }
+    }
+    leaf four {
+      type string;
+    }
+  }
+  container form-section {
+    leaf hello {
+      type string;
+    }
+    list abc {
+      key a;
+
+      leaf a {
+        type string;
+      }
+      container b {
+        leaf c {
+          type string;
+        }
+        list xyz {
+          key x;
+
+          leaf x {
+            type string;
+          }
+          container y {
+            leaf z {
+              type string;
+            }
+          }
+        }
+      }
+    }
+  }
+
+  leaf middleleaf {
+    type string;
+  }
+
+  container footer-form {
+    leaf goodbye {
+      type string;
+    }
+  }
+
+
+  leaf bottomleaf {
+    type string;
+  }
+}

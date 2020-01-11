@@ -16,7 +16,7 @@ def before_scenario(behave_context, scenario):
 def after_scenario(behave_context, scenario):
     print('waiting 30 seconds for debug')
     try:
-        time.sleep(30000)
+        time.sleep(30)
     except KeyboardInterrupt:
         pass
     if behave_context.uuid:

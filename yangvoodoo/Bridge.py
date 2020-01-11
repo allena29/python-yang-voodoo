@@ -1,4 +1,5 @@
 import os
+import signal
 import subprocess
 import sys
 import time
@@ -19,6 +20,7 @@ ns = None
 daemon = None
 hmac_key = None
 nameserver = None
+client_uuid = None
 hostname = None
 log = yangvoodoo.Common.Utils.get_logger('unknown')
 # This could be a LibyangDataStore
@@ -96,24 +98,63 @@ class VoodooGatekeeper:
 
     def __init__(self):
         self.log = yangvoodoo.Common.Utils.get_logger('DalGatekeeper')
+        self.uuid = None
+        self.data_location = data_location
+        self.hostname = hostname
+        self.yang_model = yang_model
+        self.hmac_key = hmac_key
 
     @Pyro4.expose
     def start_transaction(self):
         """
-        This here does not work..
+        Open a transaction and return the uuid.
+        This will provide a unique object registered against Pyro4ns
 
-        We probabl have to use multiprocessing and *subprocess* ourselves
-        for this to work.
+        net.mellon-collie.yangvooodoo.<Function>.<HOSTNAME>.<UUID>.<YANG MODEL>
 
-        Assumption is a pyro4 exposed thing shouldn't register more pyro4 objects.
+        When this happens if there is an existing .persit file we will copy it
+        into 'datastore/<uuid>.original.
         """
         self.uuid = str(uuid.uuid4())
         session_flag = "candidate/%s.session" % (self.uuid)
+
+        file_location = self.data_location + yang_model + '.persist'
+        if os.path.exists(file_location):
+            file_location2 = self.data_location + self.uuid + '.original'
+            self.log.info('Cloning %s -> %s', file_location, file_location2)
+            with open(file_location) as existing_data:
+                with open(file_location2) as our_copy:
+                    our_copy.write(existing_data.read())
+
         with open(session_flag, 'w') as fh:
             self.log.info("Created new candidate session:%s for:%s", self.uuid, yang_model)
-            proc = subprocess.Popen(['/usr/bin/env', 'python3', 'datastore-bridge.py', self.uuid])
+            proc = subprocess.Popen(['/usr/bin/env', 'python3', 'datastore-client.py', self.uuid])
             fh.write(str(proc.pid))
         return self.uuid
+
+    @Pyro4.expose
+    def close_transaction(self):
+        """
+        Close the transaction - discarding any pending data which has not been committed.
+        """
+        if not self.uuid:
+            self.log.info('Session is not open')
+            return
+
+        if os.path.exists(self.data_location + '/' + self.uuid + '.persist'):
+            raise NotImplementedError('we have data we need to try merge in!!!')
+        candidate_session = f'candidate/{self.uuid}.session'
+        self.log.info('Terminating candidate session')
+        with open(f'{candidate_session}') as fh:
+            pid = int(fh.read())
+            try:
+                os.kill(pid, signal.SIGTERM)
+            except ProcessLookupError:
+                pass
+            try:
+                os.unlink(candidate_session)
+            except FileNotFoundError:
+                pass
 
 
 class VoodooSchema:
@@ -137,8 +178,10 @@ class VoodooClient(VoodooSchema):
         self.datastore_bridge = datastore_bridge
         self.session = self.datastore_bridge.datastore
         self.log = log
+        self.uuid = client_uuid
         self.log.debug('datastore_bridge: object_id %s in pid %s', self, os.getpid())
         self.log.debug('datastore_bridge; %s', self.session)
+        self.log.debug('our uuid: %s', self.uuid)
 
     @Pyro4.expose
     def dbg_dump(self):
@@ -197,6 +240,11 @@ class VoodooClient(VoodooSchema):
     def dumps(self, format):
         return self.datastore_bridge.datastore.dumps(format)
 
+    @Pyro4.expose
+    def commit(self):
+        with open('datastore/%s.persist' % (self.uuid), 'w') as fh:
+            fh.write(self.datastore_bridge.datastore.dumps(1))
+
 
 def startup_gatekeeper(our_yang_model, our_yang_location=None, our_hostname='192.168.3.1',
                        our_nameserver='192.168.1.28',
@@ -235,21 +283,23 @@ def startup_gatekeeper(our_yang_model, our_yang_location=None, our_hostname='192
     daemon.requestLoop()                   # start the event loop of the server to wait for calls
 
 
-def startup_client(uuid, our_yang_model, our_yang_location=None, our_hostname='192.168.3.1',
+def startup_client(our_uuid, our_yang_model, our_yang_location=None, our_hostname='192.168.3.1',
                    our_nameserver='192.168.1.28',
                    our_hmac_key='this-value-is-a-dummy-hmac-key', our_data_location='datastore/'):
     """
     Startup a libyang data tree a a client user.
     """
     global yang_model, yang_location, hostname, nameserver, hmac_key, data_location, log, daemon, ns, datastore_bridge
+    global client_uuid
     yang_model = our_yang_model
+    client_uuid = our_uuid
     yang_location = our_yang_location
     hostname = our_hostname
     nameserver = our_nameserver
     hmac_key = our_hmac_key
     data_location = our_data_location
-    log = yangvoodoo.Common.Utils.get_logger(uuid)
-    object_id = "net.mellon-collie.yangvooodoo.VoodooClient." + hostname + '.' + uuid + '.' + yang_model
+    log = yangvoodoo.Common.Utils.get_logger(our_uuid)
+    object_id = "net.mellon-collie.yangvooodoo.VoodooClient." + hostname + '.' + our_uuid + '.' + yang_model
     datastore_bridge = LibyangDataStore()
     datastore_bridge.connect()
     daemon = Pyro4.Daemon(host=hostname)

@@ -49,7 +49,7 @@ The gatekeeper handles the following functions
 - registers **VoodooSchema** a read-only interface to read schema information.
 
 
-The gatekeeper can be started wtih `datastore-client.py`. A pid flag is created
+The gatekeeper can be started wtih `datastore-gatekeeper.py`. A pid flag is created
 in `pid/<yangmodel>.pid`.
 
 
@@ -63,7 +63,8 @@ The client creates is created with a *UUID*, it is possible to use the client ob
 in which case the UUID doesn't matter (however the gatekeeper will use UUID's internally to give the ability for
 multiple candidate transactions).
 
-The client code can be started with `datastore-bridge.py <uuid>`
+The client code can be started with `datastore-client.py <uuid>`. When the gatekeeper starts a datastore-client it
+is a subprocess which, the process id is stored as `candidate/<uuid>.session`.
 
 This implements the same functions a dal implements.
 
@@ -126,3 +127,70 @@ print(client_remote_obj.dumps(2))
 2020-01-10 23:07:47,556 - b737f052-fa0f-4206-ab8a-f32629eea877 DEBUG         pyro4 get: /integrationtest:simpleleaf (default: None)
 2020-01-10 23:07:47,557 - b737f052-fa0f-4206-ab8a-f32629eea877 DEBUG         pyro4 get: /integrationtest:simpleleaf (default: None)
 ```
+
+
+
+
+
+# Other Notes:
+
+## Remote Excpetions:
+
+  try:
+      gatekeeper_remote_obj.close_transaction()
+  except Exception:
+      print("Pyro traceback:")
+      print("".join(Pyro4.util.getPyroTraceback()))
+
+
+
+# DIFF stuff
+
+
+### Original
+
+```
+/a/b/c = 1
+/a/b/d = 2
+/a/b/e = 3
+```
+
+
+#### T0: create transaction
+
+###### Original
+
+```
+/a/b/c = 1
+/a/b/d = 2
+/a/b/e = 3
+```
+
+
+###### New
+
+```
+/a/b/c = 1
+/a/b/d = 20000
+/a/b/e = 3
+```
+
+###### When we close the transaction
+
+
+- DiffEnginer will get us to
+
+```
+a/b/d old = 2 new = 20000
+```
+
+We should walk every XPATH and make sure that if there's an old val it matches our diff result.
+Otherwise it's a conflict!
+
+If it does we do
+ - delete if new is None
+ - set if new is a value
+
+
+
+we need a locking mechanism

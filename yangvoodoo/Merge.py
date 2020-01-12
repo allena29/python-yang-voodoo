@@ -46,85 +46,99 @@ class DataSchema:
         with open(data_file) as fh:
             getattr(self.libyang_data, method)(fh.read(), self.data_format)
 
-    def process(self):
+    def _expand_list_instances(self):
         """
-        libyang doesn't do a recursive search on the path /module:*//*, this means we
-        have a limitation of specifying the first node we want to search
+        Given a list of all possible data nodes from the schema and a predicate map, returns
+        an expanded list with all list elements in the right place.
         """
-        self.yang_lists = [('__root',)]
-        self.list_predicates = []
 
-        top_nodes = self.libyang_ctx.find_path(f'/{self.yang_model}:*')
-        # top_nodes = self.libyang_ctx.find_path(f'/{self.yang_model}:{self.entry_node}//*')
-        for top_node in top_nodes:
-            if self._is_containing_node(top_node):
-                for result in self._process_containing_nodes(top_node):
-                    yield result
+        results = self._get_all_data_paths()
+        for (xpath, predicates, contianer) in results:
+            if predicates:
+                this_list_xpath = xpath + predicates
+                this_list = []
+                for i in range(self.predicate_path_count[this_list_xpath]):
+                    this_list.append(next(results))
 
-                for node in self.libyang_ctx.find_path(top_node.schema_path()+"//*"):
-                    if self._is_containing_node(node):
-                        self._process_containing_nodes(node)
-                    else:
-                        data_path = self._get_data_path(node)
-                        yield (data_path, node.schema_path(), self._return_value(data_path))
+                for list_element in self.predicate_map[this_list_xpath]:
+                    yield self._build_result(list_element)
+                    for (this_list_field, _, _) in this_list:
+                        yield self._build_result(this_list_field.replace(this_list_xpath, list_element))
             else:
-                # Non Containing Nodes
-                data_path = self._get_data_path(top_node)
-                yield (data_path, top_node.schema_path(), self._return_value(data_path))
+                yield self._build_result(xpath)
 
-    def _return_value(self, data_path):
-        data = list(self.libyang_data.get_xpath(data_path))
-        if data:
-            return data[0].value
-        return None
+    def _build_result(self, xpath):
+        val = None
+        if not xpath[-1] == ']':
+            tmp = list(self.libyang_data.get_xpath(xpath))
+            if tmp:
+                val = tmp[0].value
+        return (xpath, val)
+
+    def _build_map_of_predicates(self):
+        """
+        After we have _get_all_data_paths we simply just have to expand the predicates.
+
+        This intermediate function will do a gets_xpath() to find the list elements that
+        exist in the list, and will then work out how many paths belong to that list.
+        """
+        last_predicate = None
+        self.predicate_map = {}
+        self.predicate_path_count = {}
+        i = 0
+        for (path, predicates, _) in self._get_all_data_paths():
+            if predicates:
+                combined_path = path + predicates
+                # print(combined_path)
+                self.predicate_map[combined_path] = []
+                self.predicate_path_count[combined_path] = 0
+                last_predicate = combined_path
+                for xpath in self.libyang_data.gets_xpath(path):
+                    self.predicate_map[combined_path].append(xpath)
+            if last_predicate and path.startswith(last_predicate):
+                self.predicate_path_count[last_predicate] += 1
+
+            i = i + 1
+
+    def _get_all_data_paths(self):
+        """
+        This method does nothing more than get all data_paths based upon a schema.
+        It returns a generator of tuples.
+            ( path to node or list element, predicates).
+
+        This uses the schema only.
+        """
+        top_nodes = self.libyang_ctx.find_path(f'/{self.yang_model}:*')
+        for top_node in top_nodes:
+            yield self._get_result(top_node)
+            if self._is_containing_node(top_node):
+                for node in self.libyang_ctx.find_path(top_node.schema_path()+"//*"):
+                    yield self._get_result(node)
 
     @staticmethod
     def _is_containing_node(node):
         return node.nodetype() in (Types.LIBYANG_NODETYPE['CONTAINER'], Types.LIBYANG_NODETYPE['LIST'])
 
-    def _process_containing_nodes(self, node):
-        if node.nodetype() == Types.LIBYANG_NODETYPE['LIST']:
-            self._process_list(node)
-        print(node, 'is containing node')
-        if 1 == 0:
-            yield None
-
-    def _process_list(self, node):
-        print()
-        print(self.yang_lists, '<<< yang lists')
-        print(self.list_predicates, "<<<< list predicates")
-
-        schema_path = node.schema_path()
-        # yang_lists
-        #  - first entry is a dummy entry
-        #  - other entries is a tuple, path and number  of entries
-        if not self.yang_lists[-1][0].startswith(schema_path):
-            keys = list(node.keys())
-            print('we have the following keys')
-            self.yang_lists.append((node.schema_path, keys))
-
-            list_element_path = schema_path.replace("[%s='%%s']" % (keys[0]), '')
-            print(list_element_path, '<<< list element_path')
-
-            for xpaths in self.libyang_data.gets_xpath(list_element_path):
-                print(xpaths)
-            print('new list', node.data_path())
-
-        else:
-            d = 5/0
-            print('existing list')
-
-        print(dir(node))
-
-        print(list(node.keys()))
-        print('process list', node)
-
-    def _get_data_path(self, node):
+    @staticmethod
+    def _get_result(node):
+        """
+        Split a node's data_path into it's list_element and predicates
+        """
         data_path = node.data_path()
-        print('before predicates', data_path)
-        print('list_predicates', self.list_predicates)
-        try:
-            return data_path.replace('%s', '{}').format(*self.list_predicates)
-        except IndexError:
-            raise
-            raise ValueError('problem getting data path\n%s\n%s' % (data_path, str(self.list_predicates)))
+        if node.nodetype() == Types.LIBYANG_NODETYPE['CONTAINER']:
+            return (data_path, None, node)
+        data_path = node.data_path()
+        if hasattr(node, 'keys'):
+            keys = list(node.keys())
+            list_element_path = f"[{keys[0].name()}='%s']"
+            predicates = data_path.find(list_element_path)
+            return (data_path[0: predicates], data_path[predicates:], node)
+        return (data_path, None, node)
+    #
+    # def _expand_list(self, xpath):
+    #     if 1 == 0:
+    #         yield ''
+    #     for list_xpath in self.predicate_map:
+    #         if list_xpath in xpath:
+    #             for list_element_xpath in self.predicate_map[list_xpath]:
+    #                 yield xpath.replace(list_xpath, list_element_xpath)

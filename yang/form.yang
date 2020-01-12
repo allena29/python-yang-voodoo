@@ -24,6 +24,29 @@ module form {
       type string;
     }
   }
+
+
+  list composite-list {
+    key "one five";
+
+    leaf one {
+      type string;
+    }
+
+    leaf five {
+      type string;
+    }
+
+    container two {
+      leaf three {
+        type string;
+      }
+    }
+    leaf four {
+      type string;
+    }
+  }
+
   container form-section {
     leaf hello {
       type string;

@@ -87,8 +87,13 @@ module form {
     }
   }
 
-
   leaf bottomleaf {
     type string;
+  }
+
+  container bottom {
+    leaf checkbox {
+      type boolean;
+    }
   }
 }

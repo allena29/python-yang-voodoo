@@ -48,8 +48,23 @@ class DataSchema:
 
     def process(self):
         self._build_map_of_predicates()
-        for result in self._expand_list_instances():
+        for result in self._magic(self._expand_list_instances()):
             yield result
+
+    def _magic(self, results):
+        self.trace = ['_']
+        for (xpath, value, node, _) in results:
+            if self.trace and not self.trace[-1] == xpath[:len(self.trace[-1])]:
+                # if self.trace[-1] in xpath[:len(self.trace[-1])]:
+                self.trace.pop()
+
+            if self.trace:
+                yield xpath, node, self.trace[-1], value
+            else:
+                yield xpath, node, '/', value
+
+            if self._is_containing_node(node):
+                self.trace.append(xpath)
 
     def _expand_list_instances(self):
         """
@@ -64,6 +79,8 @@ class DataSchema:
                 this_list = []
                 for i in range(self.predicate_path_count[this_list_xpath]):
                     this_list.append(next(results))
+
+                yield self._build_result(xpath, node, hash)
 
                 for list_element in self.predicate_map[this_list_xpath]:
                     yield self._build_result(list_element, node, hash)

@@ -1,0 +1,96 @@
+<?xml version="1.0" ?>
+<html>
+  <link href="voodoo-form.css" rel="stylesheet" type="text/css"/>
+  <div id="voodoo-form-widget">
+    <div class="voodoo-containing-section" id="vcs_/">
+      <div class="voodoo-field-section" id="vff_/form:topleaf">
+        <span class="voodoo-input-title-text">topleaf  type10</span>
+        <input name="vf_/form:topleaf" value="ABCTOPLEAF"/>
+      </div>
+      <div class="voodoo-containing-section" id="vcs_/form:toplevel-list">
+        <span class="voodoo-form-title-text">LIST/form:toplevel-list[&lt;libyang.schema.Leaf: one string&gt;]</span>
+      </div>
+      <div class="voodoo-containing-section" id="vcs_/form:composite-list">
+        <span class="voodoo-form-title-text">LIST/form:composite-list[&lt;libyang.schema.Leaf: one string&gt;, &lt;libyang.schema.Leaf: five string&gt;]</span>
+      </div>
+      <div class="voodoo-containing-section" id="vcs_/form:form-section">
+        <span class="voodoo-form-title-text">form-section/form:form-section</span>
+        <div class="voodoo-field-section" id="vff_/form:form-section/hello">
+          <span class="voodoo-input-title-text">hello  type10</span>
+          <input name="vf_/form:form-section/hello"/>
+        </div>
+        <div class="voodoo-containing-section" id="vcs_/form:form-section/abc">
+          <span class="voodoo-form-title-text">LIST/form:form-section/abc[&lt;libyang.schema.Leaf: a string&gt;]</span>
+          <div class="voodoo-containing-section" id="vcs_/form:form-section/abc[a='1']">
+            <span class="voodoo-form-title-text">LIST/form:form-section/abc[a='1'][&lt;libyang.schema.Leaf: a string&gt;]</span>
+            <div class="voodoo-field-section" id="vff_/form:form-section/abc[a='1']/a">
+              <span class="voodoo-input-title-text">a  type10</span>
+              <input name="vf_/form:form-section/abc[a='1']/a" value="1"/>
+            </div>
+            <div class="voodoo-containing-section" id="vcs_/form:form-section/abc[a='1']/b">
+              <span class="voodoo-form-title-text">b/form:form-section/abc[a='1']/b</span>
+              <div class="voodoo-field-section" id="vff_/form:form-section/abc[a='1']/b/c">
+                <span class="voodoo-input-title-text">c  type10</span>
+                <input name="vf_/form:form-section/abc[a='1']/b/c"/>
+              </div>
+            </div>
+            <div class="voodoo-containing-section" id="vcs_/form:form-section/abc[a='2']">
+              <span class="voodoo-form-title-text">LIST/form:form-section/abc[a='2'][&lt;libyang.schema.Leaf: a string&gt;]</span>
+              <div class="voodoo-field-section" id="vff_/form:form-section/abc[a='2']/a">
+                <span class="voodoo-input-title-text">a  type10</span>
+                <input name="vf_/form:form-section/abc[a='2']/a" value="2"/>
+              </div>
+              <div class="voodoo-containing-section" id="vcs_/form:form-section/abc[a='2']/b">
+                <span class="voodoo-form-title-text">b/form:form-section/abc[a='2']/b</span>
+                <div class="voodoo-field-section" id="vff_/form:form-section/abc[a='2']/b/c">
+                  <span class="voodoo-input-title-text">c  type10</span>
+                  <input name="vf_/form:form-section/abc[a='2']/b/c"/>
+                </div>
+              </div>
+              <div class="voodoo-containing-section" id="vcs_/form:form-section/abc[a='%s']/b/xyz">
+                <span class="voodoo-form-title-text">LIST/form:form-section/abc[a='%s']/b/xyz[&lt;libyang.schema.Leaf: x string&gt;]</span>
+              </div>
+              <div class="voodoo-field-section" id="vff_/form:middleleaf">
+                <span class="voodoo-input-title-text">middleleaf  type10</span>
+                <input name="vf_/form:middleleaf"/>
+              </div>
+            </div>
+            <div class="voodoo-containing-section" id="vcs_/form:footer-form">
+              <span class="voodoo-form-title-text">footer-form/form:footer-form</span>
+              <div class="voodoo-field-section" id="vff_/form:footer-form/goodbye">
+                <span class="voodoo-input-title-text">goodbye  type10</span>
+                <input name="vf_/form:footer-form/goodbye"/>
+              </div>
+            </div>
+            <div class="voodoo-containing-section" id="vcs_/form:bottomlist">
+              <span class="voodoo-form-title-text">LIST/form:bottomlist[&lt;libyang.schema.Leaf: botx uint32&gt;]</span>
+            </div>
+            <div class="voodoo-field-section" id="vff_/form:bottomleaf">
+              <span class="voodoo-input-title-text">bottomleaf  type10</span>
+              <input name="vf_/form:bottomleaf"/>
+            </div>
+          </div>
+          <div class="voodoo-containing-section" id="vcs_/form:bottom">
+            <span class="voodoo-form-title-text">bottom/form:bottom</span>
+            <div class="voodoo-field-section" id="vff_/form:bottom/checkbox">
+              <span class="voodoo-input-title-text">checkbox  type3</span>
+              <input name="vf_/form:bottom/checkbox"/>
+            </div>
+            <div class="voodoo-containing-section" id="vcs_/form:bottom/optional">
+              <span class="voodoo-form-title-text">optional/form:bottom/optional</span>
+              <div class="voodoo-field-section" id="vff_/form:bottom/optional/inside">
+                <span class="voodoo-input-title-text">inside  type10</span>
+                <input name="vf_/form:bottom/optional/inside"/>
+              </div>
+            </div>
+            <div class="voodoo-field-section" id="vff_/form:bottom/dropdown">
+              <span class="voodoo-input-title-text">dropdown  type6</span>
+              <input name="vf_/form:bottom/dropdown"/>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</html>
+

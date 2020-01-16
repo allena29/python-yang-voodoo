@@ -12,6 +12,7 @@ parser.add_argument('yang')
 
 
 args = parser.parse_args()
-
+if args.data is None:
+    args.data = []
 webtools = FormGenerator(args.yang, args.format, args.data, yang_location=args.yanglocation)
 webtools.build()

@@ -87,6 +87,14 @@ module form {
     }
   }
 
+  list bottomlist {
+    key botx;
+
+    leaf botx {
+      type uint32;
+    }
+  }
+
   leaf bottomleaf {
     type string;
   }
@@ -94,6 +102,20 @@ module form {
   container bottom {
     leaf checkbox {
       type boolean;
+    }
+    container optional {
+
+      presence true;
+      leaf inside {
+        type string;
+      }
+    }
+    leaf dropdown {
+      type enumeration {
+        enum A;
+        enum B;
+        enum C;
+      }
     }
   }
 }
